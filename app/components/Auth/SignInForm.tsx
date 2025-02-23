@@ -1,152 +1,171 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  Button,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-} from "react-native";
+import { useForm, Controller } from "react-hook-form";
+import { View, StyleSheet } from "react-native";
+import { TextInput, Button, Text, Checkbox, HelperText } from "react-native-paper";
+import { FormView } from "./AuthForm";
 
 interface SignInFormProps {
-  onSignIn: (email: string, password: string) => void;
+  onSignIn: (data: { email: string; password: string }) => void;
   isLoading: boolean;
   error: string | null;
-  setShowLogin: (show: boolean) => void;
-  setShowResetPassword: (show: boolean) => void;
+  setActiveForm: (activeForm: FormView) => void;
 }
 
-const SignInForm: React.FC<SignInFormProps> = ({
-  onSignIn,
-  isLoading,
-  error,
-  setShowLogin,
-  setShowResetPassword,
-}) => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+interface FormData {
+  email: string;
+  password: string;
+  rememberMe: boolean;
+}
 
-  const handleSubmit = () => {
-    onSignIn(email, password);
+const SignInForm: React.FC<SignInFormProps> = ({ onSignIn, isLoading, error, setActiveForm }) => {
+  const [showPassword, setShowPassword] = useState(false);
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormData>({
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+    mode: "onChange",
+  });
+
+  const onSubmit = (data: FormData) => {
+    onSignIn({
+      email: data.email,
+      password: data.password,
+    });
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.label}>Your Email</Text>
-      <TextInput
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        placeholder="name@company.com"
-        style={styles.input}
-      />
-      <Text style={styles.label}>Password</Text>
-      <TextInput
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        placeholder="••••••••"
-        style={styles.input}
-      />
-      <View style={styles.checkboxContainer}>
-        <TouchableOpacity style={styles.checkbox}>
-          <Text style={styles.checkboxText}>✓</Text>
-        </TouchableOpacity>
-        <Text style={styles.rememberText}>Remember me</Text>
-        <TouchableOpacity
-          onPress={() => setShowResetPassword(true)}
-          style={styles.forgotPassword}
-        >
-          <Text style={styles.forgotPasswordText}>Forgot password?</Text>
-        </TouchableOpacity>
+    <>
+      <View>
+        <Controller
+          control={control}
+          name="email"
+          rules={{
+            required: "Email is required",
+            pattern: {
+              value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+              message: "Invalid email address",
+            },
+          }}
+          render={({ field: { onChange, onBlur, value } }) => (
+            <>
+              <TextInput
+                label="Email"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                mode="outlined"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                error={!!errors.email}
+              />
+              <HelperText
+                type="error"
+                visible={!!errors.email}
+              >
+                {errors.email?.message}
+              </HelperText>
+            </>
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="password"
+          rules={{
+            required: "Password is required",
+            minLength: {
+              value: 6,
+              message: "Password must be at least 6 characters",
+            },
+          }}
+          render={({ field: { onChange, onBlur, value } }) => (
+            <>
+              <TextInput
+                label="Password"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                mode="outlined"
+                secureTextEntry={!showPassword}
+                error={!!errors.password}
+                right={
+                  <TextInput.Icon
+                    icon={showPassword ? "eye-off" : "eye"}
+                    onPress={() => setShowPassword(!showPassword)}
+                    size={20}
+                  />
+                }
+              />
+              <HelperText
+                type="error"
+                visible={!!errors.password}
+              >
+                {errors.password?.message}
+              </HelperText>
+            </>
+          )}
+        />
       </View>
-      {error && <Text style={styles.error}>{error}</Text>}
+
+      {error && (
+        <HelperText
+          type="error"
+          visible={true}
+        >
+          {error}
+        </HelperText>
+      )}
+
       <Button
-        title={isLoading ? "Signing in..." : "Sign In"}
-        onPress={handleSubmit}
+        mode="contained"
+        onPress={handleSubmit(onSubmit)}
+        loading={isLoading}
         disabled={isLoading}
-        color="#D3D3D3" // Light grey for the button background
-      />
-      <Text style={styles.signupText}>
-        Don’t have an account yet?{" "}
-        <TouchableOpacity onPress={() => setShowLogin(false)}>
-          <Text style={styles.signupLink}>Sign up</Text>
-        </TouchableOpacity>
-      </Text>
-    </View>
+      >
+        {isLoading ? "Signing in..." : "Sign In"}
+      </Button>
+
+      <View style={styles.footer}>
+        <Text variant="bodyMedium">Don't have an account yet? </Text>
+        <Button
+          mode="text"
+          compact
+          onPress={() => setActiveForm("signup")}
+        >
+          Sign up
+        </Button>
+      </View>
+
+      <Button
+        onPress={() => setActiveForm("reset")}
+        mode="text"
+        compact
+      >
+        Forgot password?
+      </Button>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 20,
-    gap: 10,
+  title: {
+    textAlign: "center",
+    marginBottom: 16,
   },
-  label: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 5,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    padding: 10,
-    fontSize: 16,
-    backgroundColor: "#F5F5F5",
-  },
-  checkboxContainer: {
+  footer: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginVertical: 10,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 4,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#F5F5D5", // Light yellow for checked state (simulating Tailwind's accent-primary)
   },
-  checkboxText: {
-    fontSize: 12,
-    color: "#000",
-  },
-  rememberText: {
-    fontSize: 14,
-    color: "#333",
-    marginLeft: 5,
-  },
-  forgotPassword: {
-    padding: 5,
-  },
-  forgotPasswordText: {
-    fontSize: 14,
-    color: "#007BFF", // Blue for Tailwind's text-primary
-    textDecorationLine: "underline",
-  },
-  error: {
-    color: "red",
-    fontWeight: "bold",
+  hint: {
     textAlign: "center",
-    marginVertical: 10,
-  },
-  signupText: {
-    fontSize: 14,
-    color: "#333",
-    textAlign: "center",
-  },
-  signupLink: {
-    fontSize: 14,
-    color: "#007BFF", // Blue for Tailwind's text-primary
-    fontWeight: "600",
-    textDecorationLine: "underline",
+    opacity: 0.7,
   },
 });
 

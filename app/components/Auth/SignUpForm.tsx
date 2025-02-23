@@ -1,169 +1,201 @@
-import React from "react";
-import { View, Text, TextInput, Button, StyleSheet, TouchableOpacity } from "react-native";
+import React, { useState } from "react";
+import { StyleSheet, View } from "react-native";
+import {
+  TextInput,
+  Button,
+  Text,
+  useTheme,
+  Surface,
+  HelperText,
+  Provider as PaperProvider,
+  DefaultTheme,
+} from "react-native-paper";
 import { useForm, Controller } from "react-hook-form";
-import { Feather } from "@expo/vector-icons";
+import { FormView } from "./AuthForm";
 
 interface SignUpFormProps {
-  onSignUp: (email: string, password: string) => void; // Simplified to remove confirmPassword
+  onSignUp: (data: { name: string; email: string; password: string }) => void;
   isLoading: boolean;
   error: string | null;
-  setShowLogin: (show: boolean) => void;
+  setActiveForm: (activeForm: FormView) => void;
 }
 
-const SignUpForm: React.FC<SignUpFormProps> = ({ onSignUp, isLoading, error, setShowLogin }) => {
+const SignUpForm: React.FC<SignUpFormProps> = ({ onSignUp, isLoading, error, setActiveForm }) => {
+  const [showPassword, setShowPassword] = useState(false);
   const {
     control,
     handleSubmit,
     formState: { errors },
   } = useForm({
     defaultValues: {
+      name: "",
       email: "",
       password: "",
     },
   });
 
-  const onSubmit = (data: { email: string; password: string }) => {
-    onSignUp(data.email, data.password);
+  const onSubmit = (data: { name: string; email: string; password: string }) => {
+    onSignUp(data);
   };
 
   return (
-    <View style={styles.container}>
-      {/* Email Input */}
-      <Text style={styles.label}>Email</Text>
-      <Controller
-        control={control}
-        rules={{
-          required: "Email is required",
-          pattern: {
-            value: /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/,
-            message: "Invalid email format",
-          },
-        }}
-        render={({ field: { onChange, onBlur, value } }) => (
-          <TextInput
-            value={value}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            placeholder="name@company.com"
-            style={[styles.input, errors.email ? { borderColor: "red" } : {}]}
-          />
-        )}
-        name="email"
-      />
-      {errors.email && <Text style={styles.error}>{errors.email.message}</Text>}
+    <>
+      <View>
+        <Controller
+          control={control}
+          rules={{
+            required: "Name is required",
+          }}
+          render={({ field: { onChange, onBlur, value } }) => (
+            <>
+              <TextInput
+                label="Name"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                autoCapitalize="none"
+                mode="outlined"
+                error={!!errors.name}
+              />
+              <HelperText
+                type="error"
+                visible={!!errors.name}
+              >
+                {errors.name?.message}
+              </HelperText>
+            </>
+          )}
+          name="name"
+        />
 
-      {/* Password Input */}
-      <Text style={styles.label}>Password</Text>
-      <Controller
-        control={control}
-        rules={{
-          required: "Password is required",
-          minLength: {
-            value: 6,
-            message: "Password must be at least 6 characters",
-          },
-        }}
-        render={({ field: { onChange, onBlur, value } }) => (
-          <TextInput
-            value={value}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            secureTextEntry
-            placeholder="••••••••"
-            style={[styles.input, errors.password ? { borderColor: "red" } : {}]}
-          />
-        )}
-        name="password"
-      />
-      {errors.password && <Text style={styles.error}>{errors.password.message}</Text>}
+        {/* Email Input */}
+        <Controller
+          control={control}
+          rules={{
+            required: "Email is required",
+            pattern: {
+              value: /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/,
+              message: "Invalid email format",
+            },
+          }}
+          render={({ field: { onChange, onBlur, value } }) => (
+            <>
+              <TextInput
+                label="Email"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                mode="outlined"
+                error={!!errors.email}
+              />
+              <HelperText
+                type="error"
+                visible={!!errors.email}
+              >
+                {errors.email?.message}
+              </HelperText>
+            </>
+          )}
+          name="email"
+        />
 
-      {/* Sign In Button */}
-      <Button
-        title={isLoading ? "Signing in..." : "Sign in"}
-        onPress={handleSubmit(onSubmit)}
-        disabled={isLoading}
-        color="#47AEBE" // Teal color matching the image
-      />
+        {/* Password Input */}
+        <Controller
+          control={control}
+          rules={{
+            required: "Password is required",
+            minLength: {
+              value: 6,
+              message: "Password must be at least 6 characters",
+            },
+          }}
+          render={({ field: { onChange, onBlur, value } }) => (
+            <>
+              <TextInput
+                label="Password"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                secureTextEntry={!showPassword}
+                right={
+                  <TextInput.Icon
+                    icon={showPassword ? "eye-off" : "eye"}
+                    onPress={() => setShowPassword(!showPassword)}
+                    size={20}
+                  />
+                }
+                mode="outlined"
+                error={!!errors.password}
+              />
+              <HelperText
+                type="error"
+                visible={!!errors.password}
+              >
+                {errors.password?.message}
+              </HelperText>
+            </>
+          )}
+          name="password"
+        />
+      </View>
 
       {/* Error Message */}
-      {error && <Text style={styles.error}>{error}</Text>}
+      {error && (
+        <HelperText
+          type="error"
+          visible={!!error}
+        >
+          {error}
+        </HelperText>
+      )}
 
-      {/* Hint for Signup */}
-      <Text style={styles.hintText}>
-        For signup we require additional info like age, weight, height etc
-      </Text>
+      {/* Sign Up Button */}
+      <Button
+        mode="contained"
+        onPress={handleSubmit(onSubmit)}
+        loading={isLoading}
+        disabled={isLoading}
+      >
+        {isLoading ? "Creating Account..." : "Create Account"}
+      </Button>
 
       {/* Login Link */}
-      <Text style={styles.loginText}>
-        Already have an account?{" "}
-        <TouchableOpacity onPress={() => setShowLogin(true)}>
-          <Text style={styles.loginLink}>Login here</Text>
-        </TouchableOpacity>
-      </Text>
-    </View>
+      <View style={styles.loginContainer}>
+        <Text variant="bodyMedium">Already have an account? </Text>
+        <Button
+          mode="text"
+          compact
+          onPress={() => setActiveForm("login")}
+          style={styles.loginButton}
+        >
+          Singin here
+        </Button>
+      </View>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
+  surface: {
     padding: 20,
-    justifyContent: "center",
+    width: "100%",
     alignItems: "center",
-  },
-  icon: {
-    marginBottom: 20,
+    elevation: 4,
+    borderRadius: 8,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#4CAF50", // Teal color for the title
-    marginBottom: 30,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#000000",
-    alignSelf: "flex-start",
-    marginBottom: 5,
-  },
-  input: {
-    width: "100%",
-    borderWidth: 1,
-    borderColor: "#CCCCCC",
-    borderRadius: 5,
-    padding: 10,
-    fontSize: 16,
-    marginBottom: 15,
-  },
-  error: {
-    color: "red",
-    fontSize: 13,
-    marginBottom: 10,
-    alignSelf: "flex-start",
-  },
-  hintText: {
-    fontSize: 14,
-    fontWeight: "300",
-    color: "#000000",
+    marginBottom: 24,
     textAlign: "center",
-    marginTop: 15,
-    marginBottom: 10,
   },
-  loginText: {
-    fontSize: 14,
-    color: "#000000",
-    textAlign: "center",
-    marginTop: 10,
+  loginContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  loginLink: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#47AEBE", // Teal color for the link
-    textDecorationLine: "underline",
+  loginButton: {
+    marginLeft: -8,
   },
 });
 

@@ -7,6 +7,10 @@ export default function RootLayout() {
         options={{ headerShown: false }}
         name="index"
       />
+      <Stack.Screen
+        name="pages/onBoarding"
+        options={{ headerShown: false }}
+      />
     </Stack>
   );
 }

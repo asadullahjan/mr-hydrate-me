@@ -6,7 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Your web app's Firebase configuration
 const env = process.env;
-console.log("initializing", env.EXPO_PUBLIC_FIREBASE_API_KEY)
+
 const firebaseConfig = {
   apiKey: env.EXPO_PUBLIC_FIREBASE_API_KEY,
   authDomain: env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
