@@ -1,15 +1,11 @@
+import { auth } from "@/firebaseConfig";
+import { router } from "expo-router";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import React, { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { View, StyleSheet } from "react-native";
 import { TextInput, Button, Text, Checkbox, HelperText } from "react-native-paper";
-import { FormView } from "./AuthForm";
-
-interface SignInFormProps {
-  onSignIn: (data: { email: string; password: string }) => void;
-  isLoading: boolean;
-  error: string | null;
-  setActiveForm: (activeForm: FormView) => void;
-}
+import getErrorMessage from "./utils/getErrorMessage";
 
 interface FormData {
   email: string;
@@ -17,9 +13,10 @@ interface FormData {
   rememberMe: boolean;
 }
 
-const SignInForm: React.FC<SignInFormProps> = ({ onSignIn, isLoading, error, setActiveForm }) => {
+const SignInForm = () => {
   const [showPassword, setShowPassword] = useState(false);
-
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const {
     control,
     handleSubmit,
@@ -32,11 +29,16 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSignIn, isLoading, error, set
     mode: "onChange",
   });
 
-  const onSubmit = (data: FormData) => {
-    onSignIn({
-      email: data.email,
-      password: data.password,
-    });
+  const onSubmit = async ({ email, password }: any) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (error: any) {
+      setError(getErrorMessage(error.code));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -79,10 +81,6 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSignIn, isLoading, error, set
           name="password"
           rules={{
             required: "Password is required",
-            minLength: {
-              value: 6,
-              message: "Password must be at least 6 characters",
-            },
           }}
           render={({ field: { onChange, onBlur, value } }) => (
             <>
@@ -94,6 +92,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSignIn, isLoading, error, set
                 mode="outlined"
                 secureTextEntry={!showPassword}
                 error={!!errors.password}
+                autoCapitalize="none"
                 right={
                   <TextInput.Icon
                     icon={showPassword ? "eye-off" : "eye"}
@@ -136,14 +135,14 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSignIn, isLoading, error, set
         <Button
           mode="text"
           compact
-          onPress={() => setActiveForm("signup")}
+          onPress={() => router.navigate("/(auth)/signup")}
         >
           Sign up
         </Button>
       </View>
 
       <Button
-        onPress={() => setActiveForm("reset")}
+        onPress={() => router.navigate("/(auth)/restPassword")}
         mode="text"
         compact
       >

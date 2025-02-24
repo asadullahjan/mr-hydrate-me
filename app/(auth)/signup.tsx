@@ -11,63 +11,45 @@ import {
   DefaultTheme,
 } from "react-native-paper";
 import { useForm, Controller } from "react-hook-form";
-import { FormView } from "./AuthForm";
+import { auth, db } from "@/firebaseConfig";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { setDoc, doc, collection } from "firebase/firestore";
+import { router, useNavigation } from "expo-router";
+import getErrorMessage from "./utils/getErrorMessage";
 
-interface SignUpFormProps {
-  onSignUp: (data: { name: string; email: string; password: string }) => void;
-  isLoading: boolean;
-  error: string | null;
-  setActiveForm: (activeForm: FormView) => void;
-}
-
-const SignUpForm: React.FC<SignUpFormProps> = ({ onSignUp, isLoading, error, setActiveForm }) => {
+const SignUpForm = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const {
     control,
     handleSubmit,
     formState: { errors },
   } = useForm({
     defaultValues: {
-      name: "",
       email: "",
       password: "",
     },
   });
 
-  const onSubmit = (data: { name: string; email: string; password: string }) => {
-    onSignUp(data);
+  const onSubmit = async ({ email, password }: any) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      await setDoc(doc(collection(db, "users"), userCredential.user.uid), {
+        onBoardingCompleted: false,
+      });
+    } catch (error: any) {
+      setError(getErrorMessage(error.code));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <>
       <View>
-        <Controller
-          control={control}
-          rules={{
-            required: "Name is required",
-          }}
-          render={({ field: { onChange, onBlur, value } }) => (
-            <>
-              <TextInput
-                label="Name"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                autoCapitalize="none"
-                mode="outlined"
-                error={!!errors.name}
-              />
-              <HelperText
-                type="error"
-                visible={!!errors.name}
-              >
-                {errors.name?.message}
-              </HelperText>
-            </>
-          )}
-          name="name"
-        />
-
         {/* Email Input */}
         <Controller
           control={control}
@@ -119,6 +101,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSignUp, isLoading, error, set
                 onChangeText={onChange}
                 onBlur={onBlur}
                 secureTextEntry={!showPassword}
+                autoCapitalize="none"
                 right={
                   <TextInput.Icon
                     icon={showPassword ? "eye-off" : "eye"}
@@ -167,7 +150,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSignUp, isLoading, error, set
         <Button
           mode="text"
           compact
-          onPress={() => setActiveForm("login")}
+          onPress={() => router.navigate("/(auth)/login")}
           style={styles.loginButton}
         >
           Singin here

@@ -1,26 +1,19 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, StyleSheet } from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import { TextInput, Button, Text, HelperText } from "react-native-paper";
-import { FormView } from "./AuthForm";
-
-interface PasswordResetFormProps {
-  onResetPassword: (data: { email: string }) => void;
-  isLoading: boolean;
-  error: string | null;
-  setActiveForm: (activeForm: FormView) => void;
-}
+import { auth } from "@/firebaseConfig";
+import { sendPasswordResetEmail } from "firebase/auth";
+import { router } from "expo-router";
+import getErrorMessage from "./utils/getErrorMessage";
 
 interface FormData {
   email: string;
 }
 
-const PasswordResetForm: React.FC<PasswordResetFormProps> = ({
-  onResetPassword,
-  isLoading,
-  error,
-  setActiveForm,
-}) => {
+const PasswordResetForm = () => {
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const {
     control,
     handleSubmit,
@@ -32,8 +25,17 @@ const PasswordResetForm: React.FC<PasswordResetFormProps> = ({
     mode: "onChange",
   });
 
-  const onSubmit = (data: FormData) => {
-    onResetPassword(data);
+  const onSubmit = async ({ email }: any) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setError("Password reset email sent. Check your inbox.");
+    } catch (error: any) {
+      setError(getErrorMessage(error.code));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -99,7 +101,7 @@ const PasswordResetForm: React.FC<PasswordResetFormProps> = ({
         <Button
           mode="text"
           compact
-          onPress={() => setActiveForm("login")}
+          onPress={() => router.navigate("/(auth)/login")}
         >
           Login here
         </Button>
