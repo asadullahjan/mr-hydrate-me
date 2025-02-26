@@ -37,9 +37,13 @@ const SignUpForm = () => {
     setError(null);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      await setDoc(doc(collection(db, "users"), userCredential.user.uid), {
-        onBoardingCompleted: false,
-      });
+      await setDoc(
+        doc(collection(db, "users"), userCredential.user.uid),
+        {
+          onBoardingCompleted: false,
+        },
+        { merge: true }
+      );
     } catch (error: any) {
       setError(getErrorMessage(error.code));
     } finally {
@@ -150,7 +154,7 @@ const SignUpForm = () => {
         <Button
           mode="text"
           compact
-          onPress={() => router.navigate("/(auth)/login")}
+          onPress={() => router.replace("/(auth)/login")}
           style={styles.loginButton}
         >
           Singin here

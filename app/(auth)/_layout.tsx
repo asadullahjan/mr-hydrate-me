@@ -5,7 +5,7 @@ import { Text, useTheme } from "react-native-paper";
 
 export default function AuthLayout() {
   const theme = useTheme();
-  
+
   return (
     <View style={styles.container}>
       <View style={styles.headingContainer}>
@@ -23,7 +23,7 @@ export default function AuthLayout() {
           Mr{"\n"}Hydrate Me
         </Text>
       </View>
-      <Stack screenOptions={{ headerShown: false }} />
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "white" } }} />
     </View>
   );
 }

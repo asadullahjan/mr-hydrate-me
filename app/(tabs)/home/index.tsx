@@ -1,14 +1,31 @@
 import { useAuth } from "@/components/Auth/AuthProvider";
 import { FontAwesome } from "@expo/vector-icons";
-import { View, StyleSheet, ScrollView } from "react-native";
+import { View, StyleSheet, ScrollView, Alert } from "react-native";
 import { Button, Surface, Text, useTheme } from "react-native-paper";
 import { ArcProgress } from "@/components/ArcProgress";
 import WaterIntakeChart from "@/components/SummaryChart";
 import { AddDrinkModal } from "@/components/AddDrinkModal";
+import { useEffect, useState } from "react";
+import { checkAndUpdateDailyWaterGoal } from "@/services/check-and-update-daily-water-intake";
 
 const Home = () => {
+  const [todayData, setTodayData] = useState();
   const { user } = useAuth();
   const theme = useTheme();
+
+  const fetchTodayData = () => {
+    checkAndUpdateDailyWaterGoal(user?.uid)
+      .then((data) => {
+        setTodayData(data);
+      })
+      .catch((e) => {
+        Alert.alert("Error", e.message || "Failed to fetch daily record. Please try again.");
+      });
+  };
+
+  useEffect(() => {
+    fetchTodayData();
+  }, [user]);
 
   return (
     <ScrollView>
@@ -18,7 +35,7 @@ const Home = () => {
             variant="headlineLarge"
             style={styles.heading}
           >
-            Hello {user?.name}
+            Hello {user?.profile.name}
           </Text>
           <FontAwesome
             name="user"
@@ -47,25 +64,29 @@ const Home = () => {
             />{" "}
             6th
           </Text>
-          <ArcProgress progress={50} />
-          <AddDrinkModal
-            trigger={
-              <Button
-                mode="outlined"
-                style={{ width: 100, margin: "auto" }}
-                theme={{ roundness: 10 }}
-                icon={() => (
-                  <FontAwesome
-                    name="plus"
-                    size={16}
-                    color={theme.colors.primary}
-                  />
-                )}
-              >
-                Add
-              </Button>
-            }
-          />
+          <ArcProgress progress={todayData?.percentage || 0} />
+          <Text
+            variant="labelSmall"
+            style={{ margin: "auto", color: theme.colors.primary, fontWeight: "bold" }}
+          >
+            {todayData && `${todayData?.completedAmount} / ${todayData?.totalAmount}`}
+          </Text>
+          <AddDrinkModal onComplete={fetchTodayData}>
+            <Button
+              mode="outlined"
+              style={{ width: 100, margin: "auto" }}
+              theme={{ roundness: 10 }}
+              icon={() => (
+                <FontAwesome
+                  name="plus"
+                  size={16}
+                  color={theme.colors.primary}
+                />
+              )}
+            >
+              Add
+            </Button>
+          </AddDrinkModal>
         </Surface>
         <View style={styles.weeklySummaryContainer}>
           <Text

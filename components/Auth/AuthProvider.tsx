@@ -1,38 +1,41 @@
-// app/_layout.tsx
 import { Stack } from "expo-router";
 import { useRouter, useSegments } from "expo-router";
 import React, { useEffect, createContext, useContext, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "@/firebaseConfig";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, Alert, View } from "react-native";
 import { DefaultTheme, PaperProvider } from "react-native-paper";
 
 // Define types for our context
 type User = {
   uid: string;
+  profile: {
+    name: string;
+    weight: number;
+    height: number;
+    age: number;
+    activity: string;
+    dailyGoal: number;
+  };
+  settings: {};
   onBoardingCompleted?: boolean;
-  name: string;
-  weight: number;
-  height: number;
-  age: number;
-  activity: string;
 } | null;
 
 type AuthContextType = {
   user: User;
   loading: boolean;
   error: string | null;
+  refreshUser: () => Promise<void>; // Ensure refreshUser is included
 };
 
-// Create the context
 export const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   error: null,
+  refreshUser: async () => {}, // Default implementation
 });
 
-// Auth provider component
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User>(null);
   const [loading, setLoading] = useState(true);
@@ -40,74 +43,73 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const rootSegment = useSegments()[0];
   const router = useRouter();
 
+  const fetchUserData = async (firebaseUser: any) => {
+    setLoading(true);
+    try {
+      if (firebaseUser) {
+        const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
+        const userDocData = userDoc.data();
+        const onBoardingCompleted = userDoc.exists() ? userDocData?.onBoardingCompleted : false;
+
+        const updatedUser = {
+          uid: firebaseUser.uid,
+          ...userDocData,
+        } as User;
+
+        setLoading(false);
+        setUser(updatedUser);
+
+        if (!onBoardingCompleted) {
+          router.navigate("/(onboarding)/welcome");
+        } else if (rootSegment !== "(tabs)") {
+          router.navigate("/(tabs)/home");
+        }
+      } else {
+        setUser(null);
+        if (rootSegment !== "(auth)") {
+          router.navigate("/(auth)/login");
+        }
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "An error occurred");
+      Alert.alert("Error", e.message || "An error occurred");
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      try {
-        if (firebaseUser) {
-          // Check onboarding status
-          const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
-          const onBoardingCompleted = userDoc.exists()
-            ? userDoc.data()?.onBoardingCompleted
-            : false;
-          const data = userDoc.data();
-          setUser({
-            uid: firebaseUser.uid,
-            onBoardingCompleted,
-            name: data?.name,
-            age: data?.age,
-            weight: data?.weight,
-            height: data?.height,
-            activity: data?.activity,
-          });
-
-          // Handle navigation based on onboarding status
-          if (!onBoardingCompleted) {
-            router.replace("/(onboarding)/welcome");
-          } else if (rootSegment !== "(tabs)") {
-            router.replace("/(tabs)/home");
-          }
-        } else {
-          setUser(null);
-          if (rootSegment !== "(auth)") {
-            router.replace("/(auth)/login");
-          }
-        }
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "An error occurred");
-      } finally {
-        setLoading(false);
-      }
+      await fetchUserData(firebaseUser);
     });
-
     return unsubscribe;
   }, []);
 
-  // Protect routes based on auth state
+  const refreshUser = async () => {
+    const firebaseUser = auth.currentUser;
+    await fetchUserData(firebaseUser);
+  };
+
   useEffect(() => {
-    if (!loading && !user && rootSegment !== "(auth)") {
-      router.replace("/(auth)/login");
-    } else if (user && !user.onBoardingCompleted && rootSegment !== "(onboarding)") {
-      router.replace("/(onboarding)/welcome");
-    } else if (user && user.onBoardingCompleted && rootSegment === "(auth)") {
-      router.replace("/(tabs)/home");
+    if (!loading) {
+      if (!user && rootSegment !== "(auth)") {
+        router.navigate("/(auth)/login");
+      } else if (user && !user.onBoardingCompleted && rootSegment !== "(onboarding)") {
+        router.navigate("/(onboarding)/welcome");
+      } else if (user && user.onBoardingCompleted && rootSegment !== "(tabs)") {
+        router.navigate("/(tabs)/home");
+      }
     }
   }, [user, loading, rootSegment]);
 
-  if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator
-          size="large"
-          color="#47AEBE"
-        />
-      </View>
-    );
-  }
-
-  return <AuthContext.Provider value={{ user, loading, error }}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, loading, error, refreshUser }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
-// Custom hook for using auth context
 export function useAuth() {
   return useContext(AuthContext);
 }

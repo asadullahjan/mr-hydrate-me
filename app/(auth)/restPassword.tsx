@@ -101,7 +101,7 @@ const PasswordResetForm = () => {
         <Button
           mode="text"
           compact
-          onPress={() => router.navigate("/(auth)/login")}
+          onPress={() => router.replace("/(auth)/login")}
         >
           Login here
         </Button>

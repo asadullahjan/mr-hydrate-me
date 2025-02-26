@@ -5,7 +5,7 @@ export default function Index() {
   const { user, loading } = useAuth();
 
   if (loading) return null;
-
+  console.log({ user });
   if (!user) {
     return <Redirect href="/(auth)/login" />;
   }

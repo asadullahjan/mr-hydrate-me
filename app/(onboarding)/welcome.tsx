@@ -1,16 +1,20 @@
+import { useAuth } from "@/components/Auth/AuthProvider";
 import { auth, db } from "@/firebaseConfig";
-import { useNavigation } from "expo-router";
+import { updateUserData } from "@/services/update-user-profile";
+import { router, useNavigation } from "expo-router";
 import { setDoc, doc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
-import { View } from "react-native";
+import { Alert, View } from "react-native";
 import { TextInput, Text, Button, RadioButton, ProgressBar, Surface } from "react-native-paper";
 
 const OnBoarding = () => {
   const totalSteps = questions.length;
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState<{ [key: string]: any }>({});
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigation = useNavigation();
+  const { refreshUser } = useAuth();
 
   const updateFormData = (field: string, value: string) => {
     setFormData((prev) => ({
@@ -36,19 +40,19 @@ const OnBoarding = () => {
     // Save to Firebase when last step is reached
     const user = auth.currentUser;
     if (!user) return;
+    setLoading(true);
 
     try {
-      await setDoc(
-        doc(db, "users", user.uid),
-        {
-          ...formData,
-          onBoardingCompleted: true,
-        },
-        { merge: true }
-      );
-      navigation.navigate("index" as never);
+      await updateUserData(user.uid, {
+        profile: formData,
+        generalData: { onBoardingCompleted: true },
+      });
+      await refreshUser();
     } catch (error) {
       console.error("Error saving onboarding data:", error);
+      Alert.alert("Error", e.message || "An error occurred");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -93,14 +97,14 @@ const OnBoarding = () => {
         <TextInput
           mode="outlined"
           keyboardType={currentQuestion.type === "number" ? "numeric" : "default"}
-          value={formData[currentQuestion.field]}
+          value={formData[currentQuestion.field] || ""}
           onChangeText={(text) => updateFormData(currentQuestion.field, text)}
           placeholder={currentQuestion.placeholder}
         />
       ) : currentQuestion.type === "radio" ? (
         <RadioButton.Group
           onValueChange={(value) => updateFormData(currentQuestion.field, value)}
-          value={formData[currentQuestion.field]}
+          value={formData[currentQuestion.field] || ""}
         >
           {currentQuestion.options?.map((option) => (
             <Surface
@@ -140,6 +144,8 @@ const OnBoarding = () => {
         <Button
           mode="contained"
           onPress={handleNext}
+          loading={loading}
+          disabled={loading}
           style={{ flex: 1, marginLeft: 8 }}
         >
           {step === totalSteps - 1 ? "Finish" : "Next"}

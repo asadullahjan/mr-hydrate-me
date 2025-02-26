@@ -135,14 +135,14 @@ const SignInForm = () => {
         <Button
           mode="text"
           compact
-          onPress={() => router.navigate("/(auth)/signup")}
+          onPress={() => router.replace("/(auth)/signup")}
         >
           Sign up
         </Button>
       </View>
 
       <Button
-        onPress={() => router.navigate("/(auth)/restPassword")}
+        onPress={() => router.replace("/(auth)/restPassword")}
         mode="text"
         compact
       >
