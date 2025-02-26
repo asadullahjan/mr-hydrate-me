@@ -4,21 +4,23 @@ import { ScrollView, View, Dimensions } from "react-native";
 import moment from "moment";
 import React, { useState, useEffect } from "react";
 import ArcProgress from "./ArcProgress";
-import { BarChart } from "react-native-chart-kit";
+import { BarChart, LineChart } from "react-native-chart-kit";
 import { getWeekMonthData } from "@/services/get-week-month-progress";
+import { useTheme } from "react-native-paper";
+import { LineChartData } from "react-native-chart-kit/dist/line-chart/LineChart";
 
 const WaterIntakeChart = ({
   userId,
   duration = "week",
+  refresh,
 }: {
   userId: string;
   duration: "month" | "week";
+  refresh: number;
 }) => {
-  const [Data, setData] = useState({
-    labels: [],
-    datasets: [{ data: [] }],
-  });
+  const [Data, setData] = useState<LineChartData | null>(null);
   const [loading, setLoading] = useState(true);
+  const theme = useTheme();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -36,6 +38,14 @@ const WaterIntakeChart = ({
             {
               data: processedData.map((item) => item.percentage),
             },
+            {
+              data: [0], //min y with no dots to make it hidden
+              withDots: false,
+            },
+            {
+              data: [100], //max y with no dots to make it hidden
+              withDots: false,
+            },
           ],
         });
       } catch (error) {
@@ -46,44 +56,67 @@ const WaterIntakeChart = ({
     };
 
     fetchData();
-  }, [userId]);
-
-  useEffect(() => {
-    console.log({ Data: Data.datasets[0].data });
-  }, [Data]);
+  }, [userId, refresh]);
 
   return (
-    <ScrollView>
-      <View style={{ alignItems: "center", padding: 20 }}>
-        {!loading && Data.labels.length > 0 && (
-          <View style={{ marginTop: 20 }}>
-            <BarChart
-              data={Data}
-              width={Dimensions.get("window").width - 40}
-              height={220}
-              yAxisSuffix="%"
-              yAxisLabel=""
-              chartConfig={{
-                backgroundColor: "#ffffff",
-                backgroundGradientFrom: "#ffffff",
-                backgroundGradientTo: "#ffffff",
-                decimalPlaces: 0,
-                color: (opacity = 1) => `rgba(0, 0, 255, ${opacity})`,
-                labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                style: {
-                  borderRadius: 16,
-                },
-                barPercentage: 0.8,
-              }}
-              style={{
-                marginVertical: 8,
+    <View style={{ alignItems: "center", overflow: "visible" }}>
+      {Data && Data.labels.length > 0 && (
+        <View
+          style={{
+            marginTop: 20,
+            padding: 20,
+            backgroundColor: theme.colors.background,
+            borderRadius: 10,
+            overflow: "visible",
+          }}
+        >
+          <LineChart
+            data={Data}
+            width={Dimensions.get("window").width - 30}
+            height={230}
+            yAxisSuffix="%"
+            yAxisLabel=""
+            fromZero={true}
+            withInnerLines={false}
+            segments={4}
+            transparent={true}
+            bezier
+            style={{
+              marginLeft: -40, // Reduce left margin
+              marginBottom: -20, // Reduce left margin
+            }}
+            chartConfig={{
+              decimalPlaces: 0,
+              color: (opacity = 1) => theme.colors.primary,
+              labelColor: (opacity = 1) => theme.colors.primary,
+              style: {
                 borderRadius: 16,
-              }}
-            />
-          </View>
-        )}
-      </View>
-    </ScrollView>
+                borderWidth: 2,
+                borderColor: "black",
+              },
+              barPercentage: 0.8,
+              strokeWidth: 1,
+              // Fixed Y-axis range
+              max: 100,
+              min: 0,
+              // Define step size for Y-axis
+              count: 5, // This will create labels at 0, 25, 50, 75, 100
+              // Reduce left padding to minimize space
+              paddingLeft: 10,
+              paddingRight: 0,
+              // Compact Y-axis labels
+              propsForLabels: {
+                fontSize: 10,
+              },
+              // Format Y-axis labels
+              formatYLabel: (yValue) => {
+                return Math.round(parseFloat(yValue));
+              },
+            }}
+          />
+        </View>
+      )}
+    </View>
   );
 };
 

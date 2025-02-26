@@ -10,6 +10,7 @@ import { checkAndUpdateDailyWaterGoal } from "@/services/check-and-update-daily-
 
 const Home = () => {
   const [todayData, setTodayData] = useState();
+  const [refresh, setRefresh] = useState(0);
   const { user } = useAuth();
   const theme = useTheme();
 
@@ -25,7 +26,7 @@ const Home = () => {
 
   useEffect(() => {
     fetchTodayData();
-  }, [user]);
+  }, [user, refresh]);
 
   return (
     <ScrollView>
@@ -71,7 +72,7 @@ const Home = () => {
           >
             {todayData && `${todayData?.completedAmount} / ${todayData?.totalAmount}`}
           </Text>
-          <AddDrinkModal onComplete={fetchTodayData}>
+          <AddDrinkModal onComplete={() => setRefresh((prev) => prev + 1)}>
             <Button
               mode="outlined"
               style={{ width: 100, margin: "auto" }}
@@ -98,6 +99,7 @@ const Home = () => {
           <WaterIntakeChart
             userId={user?.uid as string}
             duration="week"
+            refresh={refresh}
           />
         </View>
       </View>

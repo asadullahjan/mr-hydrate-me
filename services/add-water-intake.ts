@@ -18,7 +18,7 @@ export const addWaterIntake = async ({ userId, amount, date = new Date() }: { us
   await setDoc(dayRef, {
     date: moment(dateKey).startOf('day').toDate(),
     completedAmount: newCompletedAmount,
-    percentage: newPercentage,
+    percentage: newPercentage.toFixed(0),
     entries: arrayUnion({ id: timestamp, time: timestamp, amount }),
   }, { merge: true });
 
