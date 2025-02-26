@@ -1,5 +1,5 @@
-import React from "react";
-import { View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { Animated, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import * as d3 from "d3-shape";
 import { useTheme, Text } from "react-native-paper";
@@ -18,11 +18,30 @@ export const ArcProgress = ({
   const centerY = size / 2;
   const roundness = 15;
   const theme = useTheme();
+  const animation = useRef(new Animated.Value(0)).current;
+  const [animatedProgress, setAnimatedProgress] = useState(0);
+
+  // Animate the progress value
+  useEffect(() => {
+    const listener = animation.addListener(({ value }) => {
+      setAnimatedProgress(value); // Update state with current animated value
+    });
+
+    Animated.timing(animation, {
+      toValue: progress,
+      duration: 1000,
+      useNativeDriver: false, // Must be false for SVG path animation
+    }).start();
+
+    return () => {
+      animation.removeListener(listener); // Cleanup listener
+    };
+  }, [progress]);
 
   // Convert progress percentage (0-100) to radians (0 to π)
   const startAngle = -Math.PI / 1.3; // 180 degrees (bottom left)
   const totalSpan = (Math.PI / 1.3) * 2; // Total arc span (twice the start angle magnitude, ~276.92°)
-  const endAngle = startAngle + (progress / 100) * totalSpan; // Dynamic based on progress
+  const endAngle = startAngle + (animatedProgress / 100) * totalSpan; // Dynamic based on progress
 
   // Create arc path using d3-shape
   const arcGenerator = d3
@@ -71,7 +90,7 @@ export const ArcProgress = ({
           color: theme.colors.primary,
         }}
       >
-        {progress}%
+        {animatedProgress.toFixed(0)}%
       </Text>
     </View>
   );

@@ -96,21 +96,11 @@ const WaterIntakeChart = ({
               },
               barPercentage: 0.8,
               strokeWidth: 1,
-              // Fixed Y-axis range
-              max: 100,
-              min: 0,
               // Define step size for Y-axis
-              count: 5, // This will create labels at 0, 25, 50, 75, 100
-              // Reduce left padding to minimize space
-              paddingLeft: 10,
-              paddingRight: 0,
+              count: 5,
               // Compact Y-axis labels
               propsForLabels: {
                 fontSize: 10,
-              },
-              // Format Y-axis labels
-              formatYLabel: (yValue) => {
-                return Math.round(parseFloat(yValue));
               },
             }}
           />
