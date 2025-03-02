@@ -11,59 +11,76 @@ import { LineChartData } from "react-native-chart-kit/dist/line-chart/LineChart"
 
 const WaterIntakeChart = ({
   userId,
-  duration = "week",
-  refresh,
+  data,
+  loading,
+  viewMode = "week", // Add viewMode prop to determine label format
 }: {
   userId: string;
-  duration: "month" | "week";
-  refresh: number;
+  data: any;
+  loading: boolean;
+  viewMode?: "week" | "month";
 }) => {
   const [Data, setData] = useState<LineChartData | null>(null);
-  const [loading, setLoading] = useState(true);
   const theme = useTheme();
+  const windowWidth = Dimensions.get("window").width;
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const rawData = await getWeekMonthData({ userId, duration });
-        console.log({ rawData });
+    if (!loading && data) {
+      const processedData = processDataForChart(data, viewMode);
 
-        const processedData = processDataForChart(rawData);
+      // Format data for the chart
+      setData({
+        labels: processedData.map((item) => item.x),
+        datasets: [
+          {
+            data: processedData.map((item) => item.percentage),
+            withDots: viewMode === "week",
+          },
+          {
+            data: [0], //min y with no dots to make it hidden
+            withDots: false,
+          },
+          {
+            data: [100], //max y with no dots to make it hidden
+            withDots: false,
+          },
+        ],
+      });
+    }
+  }, [userId, data, viewMode]);
 
-        // Format data for the chart
-        setData({
-          labels: processedData.map((item) => item.x),
-          datasets: [
-            {
-              data: processedData.map((item) => item.percentage),
-            },
-            {
-              data: [0], //min y with no dots to make it hidden
-              withDots: false,
-            },
-            {
-              data: [100], //max y with no dots to make it hidden
-              withDots: false,
-            },
-          ],
-        });
-      } catch (error) {
-        console.error("Error fetching water intake data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  useEffect(() => {
+    console.log({ Data: Data?.datasets[0].data });
+  }, [Data]);
 
-    fetchData();
-  }, [userId, refresh]);
+  // Dynamically determine label size and skipping based on view mode
+  const getLabelStyle = () => {
+    switch (viewMode) {
+      case "month":
+        return {
+          fontSize: 8,
+          rotation: 45,
+        };
+      case "week":
+        return {
+          fontSize: 10,
+          rotation: 0,
+        };
+      default:
+        return {
+          fontSize: 10,
+          rotation: 0,
+        };
+    }
+  };
+
+  const labelStyle = getLabelStyle();
 
   return (
     <View style={{ alignItems: "center", overflow: "visible" }}>
       {Data && Data.labels.length > 0 && (
         <View
           style={{
-            marginTop: 20,
             padding: 20,
             backgroundColor: theme.colors.background,
             borderRadius: 10,
@@ -72,18 +89,19 @@ const WaterIntakeChart = ({
         >
           <LineChart
             data={Data}
-            width={Dimensions.get("window").width - 30}
+            width={windowWidth - 20}
             height={230}
             yAxisSuffix="%"
             yAxisLabel=""
             fromZero={true}
             withInnerLines={false}
+            withOuterLines={false}
             segments={4}
             transparent={true}
             bezier
             style={{
               marginLeft: -40, // Reduce left margin
-              marginBottom: -20, // Reduce left margin
+              marginBottom: -20, // Reduce bottom margin
             }}
             chartConfig={{
               decimalPlaces: 0,
@@ -99,8 +117,9 @@ const WaterIntakeChart = ({
               // Define step size for Y-axis
               count: 5,
               // Compact Y-axis labels
-              propsForLabels: {
-                fontSize: 10,
+              propsForVerticalLabels: {
+                fontSize: labelStyle.fontSize,
+                rotation: labelStyle.rotation,
               },
             }}
           />
@@ -112,13 +131,45 @@ const WaterIntakeChart = ({
 
 export default WaterIntakeChart;
 
-// Process for chart
-const processDataForChart = (Data) => {
-  return Object.entries(Data)
-    .map(([date, data]) => ({
-      x: moment(date).format("ddd"), // e.g., "Mon", "Tue"
-      y: data.totalAmount, // Show total amount in chart
-      percentage: data.percentage || 0, // Use precomputed percentage
-    }))
-    .sort((a, b) => moment(a.x, "ddd").day() - moment(b.x, "ddd").day());
+// Improved process for chart with smart labeling based on view mode
+const processDataForChart = (Data, viewMode = "week") => {
+  const dataEntries = Object.entries(Data)
+    .map(([dateString, data]) => {
+      const momentDate = moment(dateString);
+      return {
+        originalDate: dateString,
+        momentObj: momentDate,
+        // Will be replaced with appropriate format based on viewMode
+        x: "",
+        y: data.totalAmount,
+        percentage: data.percentage || 0,
+      };
+    })
+    .sort((a, b) => a.momentObj.valueOf() - b.momentObj.valueOf());
+
+  // Apply appropriate labeling strategy based on viewMode
+  return dataEntries.map((entry, index, array) => {
+    const { momentObj } = entry;
+    let xLabel = "";
+
+    switch (viewMode) {
+      case "week":
+        // For week view, show day abbreviations
+        xLabel = momentObj.format("ddd");
+        break;
+
+      case "month":
+        xLabel = momentObj.format("D");
+        break;
+
+      default:
+        xLabel = momentObj.format("D");
+    }
+
+    return {
+      ...entry,
+      x: xLabel,
+      momentObj: undefined, // Remove moment object from final result
+    };
+  });
 };

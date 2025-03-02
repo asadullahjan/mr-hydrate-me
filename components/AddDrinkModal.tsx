@@ -33,7 +33,7 @@ export const AddDrinkModal = ({ children, onComplete }: AddDrinkModalProps) => {
       if (isNaN(amount) || amount <= 0) {
         throw new Error("Please enter a valid amount greater than 0");
       }
-      await addWaterIntake({ userId: user?.uid, amount });
+      await addWaterIntake({ user: user, amount });
       onComplete();
       setCustomValue("");
       hideModal();

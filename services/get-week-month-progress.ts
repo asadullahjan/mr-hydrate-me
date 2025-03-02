@@ -3,12 +3,10 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 import moment from "moment";
 
 // Firebase data fetching functions
-export const getWeekMonthData = async ({ userId, duration }: { userId: string; duration: "month" | "week" }) => {
-  const start = moment()
-    .startOf(duration === "week" ? "isoWeek" : "month")
+export const getWeekMonthData = async ({ userId, duration }: { userId: string; duration: { startDate: Date, endDate: Date } }) => {
+  const start = moment(duration.startDate)
     .toDate(); // Monday
-  const end = moment()
-    .endOf(duration === "week" ? "isoWeek" : "month")
+  const end = moment(duration.endDate)
     .toDate(); // Sunday
 
   const recordsRef = collection(db, `/users/${userId}/dailyRecords`);

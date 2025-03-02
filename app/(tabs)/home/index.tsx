@@ -7,12 +7,25 @@ import WaterIntakeChart from "@/components/SummaryChart";
 import { AddDrinkModal } from "@/components/AddDrinkModal";
 import { useEffect, useState } from "react";
 import { checkAndUpdateDailyWaterGoal } from "@/services/check-and-update-daily-water-intake";
+import { useLeaderboardStore } from "@/store/leaderboardStore";
+import moment from "moment";
+import { useUserHistoryStore } from "@/store/userHistorySotre";
+import { getWeekMonthData } from "@/services/get-week-month-progress";
 
 const Home = () => {
   const [todayData, setTodayData] = useState();
   const [refresh, setRefresh] = useState(0);
   const { user } = useAuth();
   const theme = useTheme();
+  const { userRank, fetchLeaderboard, loading } = useLeaderboardStore();
+  const [weeklyHistory, setWeeklyHistory] = useState();
+  const [weeklyHistoryLoading, setWeeklyHistoryLoading] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      fetchLeaderboard(user.uid);
+    }
+  }, [user]);
 
   const fetchTodayData = () => {
     checkAndUpdateDailyWaterGoal(user?.uid)
@@ -27,6 +40,26 @@ const Home = () => {
   useEffect(() => {
     fetchTodayData();
   }, [user, refresh]);
+
+  useEffect(() => {
+    setWeeklyHistoryLoading(true);
+    getWeekMonthData({
+      userId: user?.uid!,
+      duration: {
+        startDate: moment().startOf("isoWeek").toDate(),
+        endDate: moment().endOf("isoWeek").toDate(),
+      },
+    })
+      .then((data) => {
+        setWeeklyHistory(data);
+      })
+      .catch((e) => {
+        Alert.alert(e.message);
+      })
+      .finally(() => {
+        setWeeklyHistoryLoading(false);
+      });
+  }, [refresh]);
 
   return (
     <ScrollView>
@@ -53,7 +86,7 @@ const Home = () => {
               name="fire"
               size={14}
             />{" "}
-            2 days
+            {user?.currentStreak || "0"} days
           </Text>
           <Text
             variant="bodyLarge"
@@ -63,7 +96,7 @@ const Home = () => {
               name="trophy"
               size={14}
             />{" "}
-            6th
+            {userRank?.position ? userRank?.position : "0"} th
           </Text>
           <ArcProgress progress={todayData?.percentage || 0} />
           <Text
@@ -98,8 +131,9 @@ const Home = () => {
           </Text>
           <WaterIntakeChart
             userId={user?.uid as string}
-            duration="week"
-            refresh={refresh}
+            data={weeklyHistory}
+            loading={weeklyHistoryLoading}
+            viewMode="week"
           />
         </View>
       </View>
@@ -145,5 +179,6 @@ const styles = StyleSheet.create({
   },
   weeklySummaryContainer: {
     paddingHorizontal: 15,
+    gap: 20,
   },
 });

@@ -30,7 +30,7 @@ export const ArcProgress = ({
     Animated.timing(animation, {
       toValue: progress,
       duration: 1000,
-      useNativeDriver: false, // Must be false for SVG path animation
+      useNativeDriver: false,
     }).start();
 
     return () => {

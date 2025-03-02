@@ -29,6 +29,7 @@ export async function checkAndUpdateDailyWaterGoal(userId) {
       weatherAdjustment: weatherAdjustment,
       totalAmount: baseGoal + weatherAdjustment,
       completedAmount: 0,
+      percentage: 0,
       lastUpdated: serverTimestamp()
     });
     todayRecord = await getDoc(todayRecordRef);

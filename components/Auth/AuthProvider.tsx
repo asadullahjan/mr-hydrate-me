@@ -8,7 +8,7 @@ import { ActivityIndicator, Alert, View } from "react-native";
 import { DefaultTheme, PaperProvider } from "react-native-paper";
 
 // Define types for our context
-type User = {
+export type User = {
   uid: string;
   profile: {
     name: string;
@@ -18,6 +18,8 @@ type User = {
     activity: string;
     dailyGoal: number;
   };
+  lastStreakUpdate: Date;
+  currentStreak: number;
   settings: {};
   onBoardingCompleted?: boolean;
 } | null;

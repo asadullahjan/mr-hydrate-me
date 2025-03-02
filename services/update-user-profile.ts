@@ -47,6 +47,7 @@ export const updateUserData = async (userId, userData: { profile?: any, settings
       profile: { ...userData.profile, dailyGoal },
       settings: { ...userData.settings },
       ...userData.generalData,
+      currentStreak: 0,
       lastUpdated: new Date(),
     },
     { merge: true }
