@@ -1,6 +1,11 @@
 // LocationContext.tsx
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import * as Location from "expo-location";
+import { updateUserData } from "@/services/update-user-profile";
+import { useAuth } from "../Auth/AuthProvider";
+import { Alert } from "react-native";
+import { db } from "@/firebaseConfig";
+import { doc, setDoc } from "firebase/firestore";
 
 interface LocationState {
   locationPermission: string | null;
@@ -16,6 +21,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
   const [locationPermission, setLocationPermission] = useState<string | null>(null);
   const [location, setLocation] = useState<Location.LocationObjectCoords | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
 
   const requestPermission = async () => {
     try {
@@ -32,6 +38,18 @@ export function LocationProvider({ children }: { children: ReactNode }) {
       setError("Error requesting location permission");
     }
   };
+
+  useEffect(() => {
+    const docRef = doc(db, `users/${user?.uid}`);
+    setDoc(
+      docRef,
+      {
+        settings: { location: location },
+        lastUpdated: new Date(),
+      },
+      { merge: true }
+    );
+  }, [location]);
 
   const value = {
     locationPermission,

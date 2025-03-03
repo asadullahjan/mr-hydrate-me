@@ -1,7 +1,10 @@
 import { Tabs } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 import { useTheme } from "react-native-paper";
-import { StyleProp, ViewStyle } from "react-native";
+import { Alert, StyleProp, ViewStyle } from "react-native";
+import { useLocation } from "@/components/Location/LocationProvider";
+import { useEffect } from "react";
+import { useAuth } from "@/components/Auth/AuthProvider";
 
 // Define your main tab routes as an array of objects
 const MAIN_TAB_ROUTES = [
@@ -20,9 +23,18 @@ const MAIN_TAB_ROUTES = [
 
 export default function TabsLayout() {
   const theme = useTheme();
+  const { user } = useAuth();
   const sceneStyle: StyleProp<ViewStyle> = {
     backgroundColor: "white",
   };
+
+  const { requestPermission } = useLocation();
+
+  useEffect(() => {
+    if (user && !user.settings.location) {
+      requestPermission();
+    }
+  }, [user, user?.settings.location]);
 
   return (
     <Tabs

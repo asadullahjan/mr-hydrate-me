@@ -3,7 +3,7 @@ import { View, Animated, StyleSheet, FlatList, Easing } from "react-native";
 import { Text, TouchableRipple, useTheme } from "react-native-paper";
 import { FontAwesome } from "@expo/vector-icons";
 import moment from "moment";
-import { DailyRecord } from "@/store/userHistorySotre";
+import { DailyRecord } from "@/store/userHistoryStore";
 
 interface EntriesSectionProps {
   selectedDateData: DailyRecord | null;

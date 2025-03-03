@@ -41,6 +41,7 @@ const SignUpForm = () => {
         doc(collection(db, "users"), userCredential.user.uid),
         {
           onBoardingCompleted: false,
+          currentStreak: 0,
         },
         { merge: true }
       );

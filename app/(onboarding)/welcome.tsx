@@ -48,9 +48,9 @@ const OnBoarding = () => {
         generalData: { onBoardingCompleted: true },
       });
       await refreshUser();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving onboarding data:", error);
-      Alert.alert("Error", e.message || "An error occurred");
+      Alert.alert("Error", error.message || "An error occurred");
     } finally {
       setLoading(false);
     }

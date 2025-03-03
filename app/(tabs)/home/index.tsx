@@ -1,7 +1,7 @@
 import { useAuth } from "@/components/Auth/AuthProvider";
 import { FontAwesome } from "@expo/vector-icons";
 import { View, StyleSheet, ScrollView, Alert } from "react-native";
-import { Button, Surface, Text, useTheme } from "react-native-paper";
+import { ActivityIndicator, Button, Surface, Text, useTheme } from "react-native-paper";
 import { ArcProgress } from "@/components/ArcProgress";
 import WaterIntakeChart from "@/components/SummaryChart";
 import { AddDrinkModal } from "@/components/AddDrinkModal";
@@ -9,17 +9,19 @@ import { useEffect, useState } from "react";
 import { checkAndUpdateDailyWaterGoal } from "@/services/check-and-update-daily-water-intake";
 import { useLeaderboardStore } from "@/store/leaderboardStore";
 import moment from "moment";
-import { useUserHistoryStore } from "@/store/userHistorySotre";
 import { getWeekMonthData } from "@/services/get-week-month-progress";
+import { DailyRecord } from "@/store/userHistoryStore";
+import { router } from "expo-router";
 
 const Home = () => {
-  const [todayData, setTodayData] = useState();
+  const [todayData, setTodayData] = useState<DailyRecord>();
   const [refresh, setRefresh] = useState(0);
   const { user } = useAuth();
   const theme = useTheme();
-  const { userRank, fetchLeaderboard, loading } = useLeaderboardStore();
+  const { userRank, fetchLeaderboard } = useLeaderboardStore();
   const [weeklyHistory, setWeeklyHistory] = useState();
   const [weeklyHistoryLoading, setWeeklyHistoryLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -28,12 +30,16 @@ const Home = () => {
   }, [user]);
 
   const fetchTodayData = () => {
-    checkAndUpdateDailyWaterGoal(user?.uid)
+    setLoading(true);
+    checkAndUpdateDailyWaterGoal(user?.uid!)
       .then((data) => {
         setTodayData(data);
       })
       .catch((e) => {
         Alert.alert("Error", e.message || "Failed to fetch daily record. Please try again.");
+      })
+      .finally(() => {
+        setLoading(false);
       });
   };
 
@@ -61,6 +67,10 @@ const Home = () => {
       });
   }, [refresh]);
 
+  if (loading) {
+    return <ActivityIndicator style={{ margin: "auto" }} />;
+  }
+
   return (
     <ScrollView>
       <View style={styles.container}>
@@ -75,6 +85,9 @@ const Home = () => {
             name="user"
             size={30}
             color={"black"}
+            onPress={() => {
+              router.push("/(tabs)/profile");
+            }}
           />
         </View>
         <Surface style={[styles.statusContainer, { backgroundColor: theme.colors.background }]}>

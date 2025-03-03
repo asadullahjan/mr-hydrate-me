@@ -1,5 +1,5 @@
 import { useAuth } from "@/components/Auth/AuthProvider";
-import { useUserHistoryStore, DailyRecord } from "@/store/userHistorySotre";
+import { useUserHistoryStore, DailyRecord } from "@/store/userHistoryStore";
 import moment from "moment";
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { View, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
@@ -8,7 +8,7 @@ import { Calendar } from "react-native-calendars";
 import WaterIntakeChart from "@/components/SummaryChart";
 import EntriesSection from "@/components/History/EntriesSection";
 import ProgressSection from "@/components/History/ProgressSection";
-import { MarkedDates } from "react-native-calendars/src/types";
+import { DateData, MarkedDates } from "react-native-calendars/src/types";
 
 /**
  * History screen component that displays a calendar, progress, entries, and a chart
@@ -67,12 +67,12 @@ const History = () => {
   }, [history, selectedDate, colors.primary]);
 
   // Callback for handling day press on calendar
-  const handleDayPress = useCallback((day) => {
+  const handleDayPress = useCallback((day: DateData) => {
     setSelectedDate(day.dateString);
   }, []);
 
   // Callback for handling month change on calendar
-  const handleMonthChange = useCallback((month) => {
+  const handleMonthChange = useCallback((month: DateData) => {
     setSelectedMonth(moment(month.dateString).format("MMMM YYYY"));
   }, []);
 

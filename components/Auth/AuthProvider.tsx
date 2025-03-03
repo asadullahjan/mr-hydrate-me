@@ -21,7 +21,9 @@ export type User = {
   };
   lastStreakUpdate: Date;
   currentStreak: number;
-  settings: {};
+  settings: {
+    location: string;
+  };
   onBoardingCompleted?: boolean;
 } | null;
 
@@ -61,6 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             ...userDocData?.profile,
             email: firebaseUser.email,
           },
+          settings: userDocData?.settings,
         } as User;
 
         setLoading(false);
@@ -77,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           router.navigate("/(auth)/login");
         }
       }
-    } catch (e) {
+    } catch (e: any) {
       setError(e instanceof Error ? e.message : "An error occurred");
       Alert.alert("Error", e.message || "An error occurred");
       setUser(null);

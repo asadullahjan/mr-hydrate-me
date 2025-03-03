@@ -1,8 +1,12 @@
 import { db } from "@/firebaseConfig";
+import { DailyRecord } from "@/store/userHistoryStore";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import moment from "moment";
+import { Alert } from "react-native";
 
-export async function checkAndUpdateDailyWaterGoal(userId) {
+type Weather = { humidity: number, temperature: number }
+
+export async function checkAndUpdateDailyWaterGoal(userId: string): Promise<DailyRecord> {
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
   const dateKey = moment(today).format('YYYY-MM-DD');
 
@@ -19,7 +23,7 @@ export async function checkAndUpdateDailyWaterGoal(userId) {
     const baseGoal = userProfile?.dailyGoal;
 
     // Get weather data for user's location (from a weather API)
-    const weatherData = await fetchWeatherData(userProfile?.location || { lat: 0, lng: 0 });
+    const weatherData = await fetchWeatherData(userData?.settings.location);
     const weatherAdjustment = calculateWeatherAdjustment(weatherData);
 
     // Create today's record
@@ -36,32 +40,60 @@ export async function checkAndUpdateDailyWaterGoal(userId) {
   }
 
   console.log({ todayRecord })
-  return todayRecord.data();
+  return todayRecord.data() as DailyRecord;
 }
 
 
-async function fetchWeatherData({ lat, lng }) {
-  // Call a weather API (e.g., OpenWeatherMap)
-  // Return temperature, humidity, etc.
-  // This is a placeholder - implement actual API call
-  return { temperature: 25, humidity: 60 };
+async function fetchWeatherData({ latitude, longitude }: { latitude: number, longitude: number }): Promise<Weather> {
+  try {
+    const url = `https://api.tomorrow.io/v4/weather/realtime?location=${latitude},${longitude}&apikey=${process.env.EXPO_PUBLIC_TOMORROW_IO_API_KEY}`;
+    const options = {
+      method: 'GET',
+      headers: { accept: 'application/json', 'accept-encoding': 'deflate, gzip, br' }
+    };
+
+    const fetchedData = await fetch(url, options)
+    const { data } = await fetchedData.json()
+
+    return {
+      humidity: data.values.humidity,
+      temperature: data.values.temperature,
+    }
+  } catch (err) {
+    console.error(err)
+    return {
+      humidity: 0,
+      temperature: 0
+    }
+  }
 }
 
-function calculateWeatherAdjustment(weather) {
-  // Logic to adjust water intake based on weather
+function calculateWeatherAdjustment(weather: Weather): number {
   let adjustment = 0;
 
-  // Example: Increase intake in hot weather
-  if (weather.temperature > 30) {
-    adjustment += 500; // Add 500ml for hot days
-  } else if (weather.temperature > 25) {
-    adjustment += 250; // Add 250ml for warm days
+  // Temperature adjustment using a sliding scale (more precise than threshold-based)
+  if (weather.temperature > 20) {
+    // Progressive increase: 50ml per degree above 20°C
+    adjustment += (weather.temperature - 20) * 50;
+  } else if (weather.temperature < 10) {
+    // Slight decrease for cold weather (people tend to drink less)
+    adjustment -= (10 - weather.temperature) * 20;
   }
 
-  // Consider humidity
-  if (weather.humidity > 70) {
-    adjustment += 200; // Add 200ml for humid days
+  // Humidity adjustment - more granular approach
+  // Higher humidity reduces body's cooling efficiency through sweat
+  if (weather.humidity > 50) {
+    // 4ml per percentage point above 50% humidity
+    adjustment += (weather.humidity - 50) * 4;
   }
 
-  return adjustment;
+  // Consider heat index (feels-like temperature) for extreme conditions
+  if (weather.temperature > 28 && weather.humidity > 60) {
+    // Additional adjustment for combined heat and humidity
+    const heatStressFactor = (weather.temperature - 28) * (weather.humidity - 60) / 100;
+    adjustment += heatStressFactor * 10;
+  }
+
+  // Cap the total adjustment to reasonable limits
+  return Math.min(1500, Math.max(-500, Math.round(adjustment)));
 }

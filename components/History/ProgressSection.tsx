@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useMemo, useCallback, useState } from "react";
 import { View, Animated, StyleSheet } from "react-native";
 import { Text, useTheme } from "react-native-paper";
-import { DailyRecord } from "@/store/userHistorySotre";
+import { DailyRecord } from "@/store/userHistoryStore";
 import CountAnimation from "../AnimatedCounter";
 
 interface ProgressSectionProps {
@@ -92,6 +92,7 @@ const styles = StyleSheet.create({
   },
   progressRowContainer: {
     flex: 1,
+    maxHeight: 60,
     overflow: "hidden",
     marginBottom: 10,
     borderRadius: 10,
