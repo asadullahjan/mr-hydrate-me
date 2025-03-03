@@ -15,7 +15,7 @@ import { auth, db } from "@/firebaseConfig";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { setDoc, doc, collection } from "firebase/firestore";
 import { router, useNavigation } from "expo-router";
-import getErrorMessage from "./utils/getErrorMessage";
+import getErrorMessage from "../../utils/getErrorMessage";
 
 const SignUpForm = () => {
   const [showPassword, setShowPassword] = useState(false);

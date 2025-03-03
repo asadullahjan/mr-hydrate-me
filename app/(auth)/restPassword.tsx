@@ -5,7 +5,7 @@ import { TextInput, Button, Text, HelperText } from "react-native-paper";
 import { auth } from "@/firebaseConfig";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { router } from "expo-router";
-import getErrorMessage from "./utils/getErrorMessage";
+import getErrorMessage from "../../utils/getErrorMessage";
 
 interface FormData {
   email: string;

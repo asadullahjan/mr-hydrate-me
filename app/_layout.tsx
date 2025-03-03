@@ -3,6 +3,7 @@ import { Stack } from "expo-router";
 import React, { useEffect, createContext, useContext, useState } from "react";
 import { DefaultTheme, PaperProvider } from "react-native-paper";
 import { AuthProvider } from "@/components/Auth/AuthProvider";
+import { LocationProvider } from "@/components/Location/LocationProvider";
 
 export default function RootLayout() {
   const theme = {
@@ -22,14 +23,16 @@ export default function RootLayout() {
   return (
     <PaperProvider theme={theme}>
       <AuthProvider>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: {
-              backgroundColor: "white",
-            },
-          }}
-        />
+        <LocationProvider>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: {
+                backgroundColor: "white",
+              },
+            }}
+          />
+        </LocationProvider>
       </AuthProvider>
     </PaperProvider>
   );

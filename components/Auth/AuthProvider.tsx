@@ -12,6 +12,7 @@ export type User = {
   uid: string;
   profile: {
     name: string;
+    email: string;
     weight: number;
     height: number;
     age: number;
@@ -56,6 +57,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const updatedUser = {
           uid: firebaseUser.uid,
           ...userDocData,
+          profile: {
+            ...userDocData?.profile,
+            email: firebaseUser.email,
+          },
         } as User;
 
         setLoading(false);

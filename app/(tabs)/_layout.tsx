@@ -3,6 +3,21 @@ import { FontAwesome } from "@expo/vector-icons";
 import { useTheme } from "react-native-paper";
 import { StyleProp, ViewStyle } from "react-native";
 
+// Define your main tab routes as an array of objects
+const MAIN_TAB_ROUTES = [
+  { name: "home/index", icon: "home", title: "Home" },
+  { name: "history/index", icon: "history", title: "History" },
+  { name: "leaderboard/index", icon: "trophy", title: "Leaderboard" },
+  { name: "profile/index", icon: "user", title: "Profile" },
+  {
+    name: "profile/notificationsSettings/index",
+    icon: "",
+    title: "Notifications Settings",
+    hidden: true,
+  },
+  { name: "profile/resetPassword/index", icon: "", title: "Reset password", hidden: true },
+];
+
 export default function TabsLayout() {
   const theme = useTheme();
   const sceneStyle: StyleProp<ViewStyle> = {
@@ -27,62 +42,24 @@ export default function TabsLayout() {
         },
       }}
     >
-      <Tabs.Screen
-        name="home/index"
-        options={{
-          title: "Home",
-          tabBarIcon: ({ color, size }) => (
-            <FontAwesome
-              name="home"
-              size={23}
-              color={color}
-            />
-          ),
-          sceneStyle,
-        }}
-      />
-      <Tabs.Screen
-        name="history/index"
-        options={{
-          title: "History",
-          tabBarIcon: ({ color, size }) => (
-            <FontAwesome
-              name="history"
-              size={23}
-              color={color}
-            />
-          ),
-          sceneStyle,
-        }}
-      />
-      <Tabs.Screen
-        name="leaderboard/index"
-        options={{
-          title: "Leaderboard",
-          tabBarIcon: ({ color, size }) => (
-            <FontAwesome
-              name="trophy"
-              size={23}
-              color={color}
-            />
-          ),
-          sceneStyle,
-        }}
-      />
-      <Tabs.Screen
-        name="profile/index"
-        options={{
-          title: "Profile",
-          tabBarIcon: ({ color, size }) => (
-            <FontAwesome
-              name="user"
-              size={23}
-              color={color}
-            />
-          ),
-          sceneStyle,
-        }}
-      />
+      {MAIN_TAB_ROUTES.map((tab) => (
+        <Tabs.Screen
+          key={tab.name}
+          name={tab.name}
+          options={{
+            title: tab.title,
+            tabBarIcon: ({ color, size }) => (
+              <FontAwesome
+                name={tab.icon as any}
+                size={size}
+                color={color}
+              />
+            ),
+            ...(tab.hidden && { href: null }),
+            sceneStyle,
+          }}
+        />
+      ))}
     </Tabs>
   );
 }

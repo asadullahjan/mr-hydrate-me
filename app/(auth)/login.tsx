@@ -5,7 +5,7 @@ import React, { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { View, StyleSheet } from "react-native";
 import { TextInput, Button, Text, Checkbox, HelperText } from "react-native-paper";
-import getErrorMessage from "./utils/getErrorMessage";
+import getErrorMessage from "../../utils/getErrorMessage";
 
 interface FormData {
   email: string;
