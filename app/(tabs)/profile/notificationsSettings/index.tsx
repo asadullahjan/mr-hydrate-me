@@ -4,7 +4,7 @@ import { Text } from "react-native-paper";
 const NotificationsSettings = () => {
   return (
     <View>
-      <Text>Hiii</Text>
+      <Text>TO DO </Text>
     </View>
   );
 };

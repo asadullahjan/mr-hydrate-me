@@ -14,16 +14,9 @@ interface UserProfile {
   [key: string]: any;   // allow other profile properties
 }
 
-interface UserSettings {
-  notificationsEnabled?: boolean;
-  reminderFrequency?: number;
-  theme?: string;
-  [key: string]: any;   // allow other settings properties
-}
 
 interface UserData {
   profile?: UserProfile;
-  settings?: UserSettings;
   generalData?: {
     [key: string]: any;
   };
@@ -97,7 +90,6 @@ export const updateUserData = async (userId: string, userData: UserData): Promis
 
   // Default empty objects to prevent null reference errors
   const profile = userData.profile || {};
-  const settings = userData.settings || {};
   const generalData = userData.generalData || {};
 
   // Calculate daily water intake goal
@@ -115,7 +107,6 @@ export const updateUserData = async (userId: string, userData: UserData): Promis
       docRef,
       {
         profile: { ...profile, dailyGoal },
-        settings: { ...settings },
         ...generalData,
         lastUpdated: new Date(),
       },

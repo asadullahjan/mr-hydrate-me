@@ -1,17 +1,29 @@
-import { Button, Text, useTheme, Dialog, Portal } from "react-native-paper";
-import { ScrollView, StyleSheet, TouchableOpacity, View, Animated } from "react-native";
+import { Tabs } from "expo-router"; // If needed for navigation, but not used here directly
+import { FontAwesome, MaterialIcons, Ionicons, Feather } from "@expo/vector-icons";
+import {
+  Button,
+  Text,
+  useTheme,
+  Dialog,
+  Portal,
+  TextInput,
+  ActivityIndicator,
+} from "react-native-paper";
+import { ScrollView, StyleSheet, TouchableOpacity, View, Animated, Alert } from "react-native";
 import { useAuth } from "@/components/Auth/AuthProvider";
 import { useState } from "react";
-import { FontAwesome, MaterialIcons, Ionicons, Feather } from "@expo/vector-icons";
-import CustomDropdown from "@/components/CustomDropdown";
 import { router } from "expo-router";
+import { auth, db } from "@/firebaseConfig";
+import { EmailAuthProvider, reauthenticateWithCredential, signOut } from "firebase/auth";
+import { doc, deleteDoc, collection, getDocs } from "firebase/firestore";
+import CustomDropdown from "@/components/CustomDropdown";
+import DeleteAccount from "@/components/Profile/DeleteAccount";
 
 const Profile = () => {
   const { user } = useAuth();
   const theme = useTheme();
   const [selectedTheme, setSelectedTheme] = useState<"Light" | "Dark">("Light");
   const [logoutDialogVisible, setLogoutDialogVisible] = useState(false);
-  const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
 
   const themeOptions = [
     { label: "Light", value: "Light" },
@@ -23,15 +35,16 @@ const Profile = () => {
   };
 
   const handleLogout = () => {
-    // Add your logout logic here
     setLogoutDialogVisible(false);
-    console.log("User logged out");
-  };
-
-  const handleDelete = () => {
-    // Add your account deletion logic here
-    setDeleteDialogVisible(false);
-    console.log("Account deleted");
+    auth
+      .signOut()
+      .then(() => {
+        console.log("User logged out successfully");
+      })
+      .catch((error) => {
+        console.error("Error logging out:", error);
+        Alert.alert("Logout Error", "Failed to log out. Please try again.");
+      });
   };
 
   return (
@@ -41,7 +54,7 @@ const Profile = () => {
           {/* Edit button positioned at top right */}
           <TouchableOpacity
             style={styles.editButton}
-            onPress={() => console.log("Edit profile")}
+            onPress={() => router.navigate("/(tabs)/profile/profileUpdate")}
           >
             <Feather
               name="edit-2"
@@ -134,17 +147,10 @@ const Profile = () => {
             </TouchableOpacity>
 
             {/* Delete Account Button */}
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: theme.colors.background }]}
-              onPress={() => setDeleteDialogVisible(true)}
-            >
-              <MaterialIcons
-                name="delete-forever"
-                size={32}
-                color={theme.colors.error}
-              />
-              <Text style={[styles.buttonText, { color: theme.colors.error }]}>Delete</Text>
-            </TouchableOpacity>
+            <DeleteAccount
+              actionButtonStyles={styles.actionButton}
+              buttonTextStyles={styles.buttonText}
+            />
           </View>
         </View>
       </View>
@@ -163,28 +169,6 @@ const Profile = () => {
           <Dialog.Actions>
             <Button onPress={() => setLogoutDialogVisible(false)}>Cancel</Button>
             <Button onPress={handleLogout}>Logout</Button>
-          </Dialog.Actions>
-        </Dialog>
-
-        {/* Delete Account Confirmation */}
-        <Dialog
-          visible={deleteDialogVisible}
-          onDismiss={() => setDeleteDialogVisible(false)}
-        >
-          <Dialog.Title>Delete Account</Dialog.Title>
-          <Dialog.Content>
-            <Text variant="bodyMedium">
-              This action cannot be undone. All your data will be permanently deleted.
-            </Text>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setDeleteDialogVisible(false)}>Cancel</Button>
-            <Button
-              textColor={theme.colors.error}
-              onPress={handleDelete}
-            >
-              Delete
-            </Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -254,6 +238,13 @@ const styles = StyleSheet.create({
     marginTop: 5,
     fontWeight: "500",
     textAlign: "center",
+  },
+  input: {
+    marginVertical: 10,
+  },
+  errorText: {
+    color: "red",
+    marginTop: 5,
   },
 });
 

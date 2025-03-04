@@ -3,10 +3,11 @@ import { DailyRecord } from "@/store/userHistoryStore";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import moment from "moment";
 import { Alert } from "react-native";
+import * as Location from "expo-location";
 
 type Weather = { humidity: number, temperature: number }
 
-export async function checkAndUpdateDailyWaterGoal(userId: string): Promise<DailyRecord> {
+export async function checkAndUpdateDailyWaterGoal(userId: string, location: Location.LocationObjectCoords | null): Promise<DailyRecord> {
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
   const dateKey = moment(today).format('YYYY-MM-DD');
 
@@ -23,7 +24,7 @@ export async function checkAndUpdateDailyWaterGoal(userId: string): Promise<Dail
     const baseGoal = userProfile?.dailyGoal;
 
     // Get weather data for user's location (from a weather API)
-    const weatherData = await fetchWeatherData(userData?.settings.location);
+    const weatherData = await fetchWeatherData(location ? { latitude: location.latitude, longitude: location.longitude } : userData?.settings?.location);
     const weatherAdjustment = calculateWeatherAdjustment(weatherData);
 
     // Create today's record

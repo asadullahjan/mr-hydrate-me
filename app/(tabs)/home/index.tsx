@@ -12,6 +12,7 @@ import moment from "moment";
 import { getWeekMonthData } from "@/services/get-week-month-progress";
 import { DailyRecord } from "@/store/userHistoryStore";
 import { router } from "expo-router";
+import { useLocation } from "@/components/Location/LocationProvider";
 
 const Home = () => {
   const [todayData, setTodayData] = useState<DailyRecord>();
@@ -22,6 +23,7 @@ const Home = () => {
   const [weeklyHistory, setWeeklyHistory] = useState();
   const [weeklyHistoryLoading, setWeeklyHistoryLoading] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { location, requestPermission } = useLocation();
 
   useEffect(() => {
     if (user) {
@@ -31,7 +33,7 @@ const Home = () => {
 
   const fetchTodayData = () => {
     setLoading(true);
-    checkAndUpdateDailyWaterGoal(user?.uid!)
+    checkAndUpdateDailyWaterGoal(user?.uid!, location)
       .then((data) => {
         setTodayData(data);
       })
@@ -44,8 +46,10 @@ const Home = () => {
   };
 
   useEffect(() => {
-    fetchTodayData();
-  }, [user, refresh]);
+    if (location) {
+      fetchTodayData();
+    }
+  }, [location, refresh]);
 
   useEffect(() => {
     setWeeklyHistoryLoading(true);
@@ -67,7 +71,13 @@ const Home = () => {
       });
   }, [refresh]);
 
-  if (loading) {
+  useEffect(() => {
+    if (user && !user.settings?.location) {
+      requestPermission();
+    }
+  }, [user, user?.settings?.location]);
+
+  if (loading && !todayData) {
     return <ActivityIndicator style={{ margin: "auto" }} />;
   }
 

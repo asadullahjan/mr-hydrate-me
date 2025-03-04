@@ -12,7 +12,7 @@ type TriggerProps = {
 
 type AddDrinkModalProps = {
   children: React.ReactElement<TriggerProps>;
-  onComplete: () => void;
+  onComplete?: () => void;
 };
 
 export const AddDrinkModal = ({ children, onComplete }: AddDrinkModalProps) => {
@@ -34,10 +34,10 @@ export const AddDrinkModal = ({ children, onComplete }: AddDrinkModalProps) => {
         throw new Error("Please enter a valid amount greater than 0");
       }
       await addWaterIntake({ user: user, amount });
-      onComplete();
+      onComplete && onComplete();
       setCustomValue("");
       hideModal();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding drink:", error.message);
       // Optional: Add user feedback here (e.g., toast or alert)
       // Example with Alert:
