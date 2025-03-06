@@ -6,24 +6,31 @@ import { useAuth } from "@/components/Auth/AuthProvider";
 import Index from "@/app/index";
 import { PaperProvider } from "react-native-paper";
 
-// Mock external dependencies
+// Mock external dependencies to isolate the component during testing
 jest.mock("expo-router");
+
 jest.mock("@/components/Auth/AuthProvider", () => ({
   useAuth: jest.fn(),
 }));
-jest.mock("react-native-paper", () => ({
-  ...jest.requireActual("react-native-paper"),
-  ActivityIndicator: jest.fn().mockReturnValue(null),
-}));
 
-describe("<Index />", () => {
-  // Reset mocks before each test
+jest.mock("react-native-paper", () => {
+  const actual = jest.requireActual("react-native-paper");
+  return {
+    ...actual,
+    ActivityIndicator: jest.fn().mockReturnValue(null),
+  };
+});
+
+// Test suite for the Index component to verify its conditional rendering logic
+describe("Index Component", () => {
+  // Clear all mocks before each test to ensure consistent and isolated test results
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it("shows loading indicator when authentication is in progress", () => {
-    // Mock loading state
+  // Test that a loading indicator is displayed during authentication
+  it("displays a loading indicator when authentication is in progress", () => {
+    // Simulate an authentication loading state
     (useAuth as jest.Mock).mockReturnValue({
       user: null,
       loading: true,
@@ -35,7 +42,7 @@ describe("<Index />", () => {
       </PaperProvider>
     );
 
-    // Verify ActivityIndicator is rendered
+    // Verify that the ActivityIndicator is rendered with the expected style
     expect(ActivityIndicator).toHaveBeenCalledWith(
       expect.objectContaining({
         style: { margin: "auto" },
@@ -44,8 +51,9 @@ describe("<Index />", () => {
     );
   });
 
-  it("redirects to login when user is not defined", () => {
-    // Mock no user
+  // Test redirection to the login screen when no user is authenticated
+  it("redirects to the login screen when no user is authenticated", () => {
+    // Simulate a state with no authenticated user and loading complete
     (useAuth as jest.Mock).mockReturnValue({
       user: null,
       loading: false,
@@ -57,12 +65,13 @@ describe("<Index />", () => {
       </PaperProvider>
     );
 
-    // Verify Redirect to login
+    // Confirm that Redirect is called with the login route
     expect(Redirect).toHaveBeenCalledWith(expect.objectContaining({ href: "/(auth)/login" }), {});
   });
 
-  it("redirects to onboarding when onboarding is not completed", () => {
-    // Mock user without completed onboarding
+  // Test redirection to onboarding when the user has not completed onboarding
+  it("redirects to onboarding when the user has not completed onboarding", () => {
+    // Simulate a user who is authenticated but has not completed onboarding
     (useAuth as jest.Mock).mockReturnValue({
       user: {
         uid: "test-user",
@@ -77,15 +86,16 @@ describe("<Index />", () => {
       </PaperProvider>
     );
 
-    // Verify Redirect to onboarding
+    // Confirm that Redirect is called with the onboarding route
     expect(Redirect).toHaveBeenCalledWith(
       expect.objectContaining({ href: "/(onboarding)/welcome" }),
       {}
     );
   });
 
-  it("redirects to home when user is defined and onboarded", () => {
-    // Mock fully onboarded user
+  // Test redirection to the home screen for an authenticated and onboarded user
+  it("redirects to the home screen when the user is authenticated and onboarded", () => {
+    // Simulate a fully authenticated and onboarded user
     (useAuth as jest.Mock).mockReturnValue({
       user: {
         uid: "test-user",
@@ -100,7 +110,7 @@ describe("<Index />", () => {
       </PaperProvider>
     );
 
-    // Verify Redirect to home
+    // Confirm that Redirect is called with the home route
     expect(Redirect).toHaveBeenCalledWith(expect.objectContaining({ href: "/(tabs)/home" }), {});
   });
 });

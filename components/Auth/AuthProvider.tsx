@@ -1,14 +1,12 @@
-import { Stack } from "expo-router";
+import React, { useState, useEffect, createContext, useContext } from "react";
 import { useRouter, useSegments } from "expo-router";
-import React, { useEffect, createContext, useContext, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "@/firebaseConfig";
-import { ActivityIndicator, Alert, View } from "react-native";
-import { DefaultTheme, PaperProvider } from "react-native-paper";
+import { Alert } from "react-native";
 import * as Location from "expo-location";
 
-// Define types for our context
+// Define the User type
 export type User = {
   uid: string;
   profile: {
@@ -35,99 +33,134 @@ export type User = {
   onBoardingCompleted?: boolean;
 } | null;
 
-type AuthContextType = {
+// Define the AuthContext type
+export type AuthContextType = {
   user: User;
   loading: boolean;
   error: string | null;
-  refreshUser: () => Promise<void>; // Ensure refreshUser is included
+  refreshUser: () => Promise<void>;
 };
 
+// Create the AuthContext with default values
 export const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   error: null,
-  refreshUser: async () => {}, // Default implementation
+  refreshUser: async () => {},
 });
 
+/**
+ * AuthProvider manages user authentication state and redirects based on auth status and onboarding completion.
+ * @param children - The child components to render within the provider
+ */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  // State for user data, loading, and errors
   const [user, setUser] = useState<User>(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const rootSegment = useSegments()[0];
-  const router = useRouter();
 
+  // Hooks for routing and segment tracking
+  const router = useRouter();
+  const rootSegment = useSegments()[0];
+
+  /**
+   * Fetches user data from Firestore and updates state, handling redirects as needed.
+   * @param firebaseUser - The Firebase auth user object
+   */
   const fetchUserData = async (firebaseUser: any) => {
-    setLoading(true);
+    setIsLoading(true);
     try {
       if (firebaseUser) {
         const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
         const userDocData = userDoc.data();
         const onBoardingCompleted = userDoc.exists() ? userDocData?.onBoardingCompleted : false;
 
-        const updatedUser = {
+        const updatedUser: User = {
           uid: firebaseUser.uid,
-          ...userDocData,
           profile: {
-            ...userDocData?.profile,
-            email: firebaseUser.email,
+            name: userDocData?.profile?.name || "",
+            email: firebaseUser.email || "",
+            weight: userDocData?.profile?.weight || 0,
+            height: userDocData?.profile?.height || 0,
+            age: userDocData?.profile?.age || 0,
+            activity: userDocData?.profile?.activity || "",
+            dailyGoal: userDocData?.profile?.dailyGoal || 0,
           },
-          settings: userDocData?.settings,
-        } as User;
+          lastStreakUpdate: userDocData?.lastStreakUpdate?.toDate() || new Date(),
+          currentStreak: userDocData?.currentStreak || 0,
+          settings: userDocData?.settings || {
+            location: {
+              latitude: 0,
+              longitude: 0,
+              altitude: null,
+              accuracy: null,
+              altitudeAccuracy: null,
+              heading: null,
+              speed: null,
+            },
+            notifications: {
+              enabled: false,
+              reminderFrequency: 0,
+              startTime: 0,
+              endTime: 0,
+              soundEnabled: false,
+            },
+          },
+          onBoardingCompleted,
+        };
 
-        setLoading(false);
         setUser(updatedUser);
 
-        if (!onBoardingCompleted) {
-          router.navigate("/(onboarding)/welcome");
+        // Redirect based on onboarding status
+        if (!onBoardingCompleted && rootSegment !== "(onboarding)") {
+          router.replace("/(onboarding)/welcome");
         } else if (rootSegment !== "(tabs)") {
-          router.navigate("/(tabs)/home");
+          router.replace("/(tabs)/home");
         }
       } else {
         setUser(null);
         if (rootSegment !== "(auth)") {
-          router.navigate("/(auth)/login");
+          router.replace("/(auth)/login");
         }
       }
     } catch (e: any) {
-      setError(e instanceof Error ? e.message : "An error occurred");
-      Alert.alert("Error", e.message || "An error occurred");
+      const errorMessage = e instanceof Error ? e.message : "An error occurred";
+      setError(errorMessage);
+      Alert.alert("Error", errorMessage);
       setUser(null);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
+  // Listen to auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       await fetchUserData(firebaseUser);
     });
-    return unsubscribe;
-  }, []);
+    return () => unsubscribe();
+  }, []); // Empty dependency array since this runs once on mount
 
+  /**
+   * Refreshes user data from Firestore.
+   */
   const refreshUser = async () => {
     const firebaseUser = auth.currentUser;
     await fetchUserData(firebaseUser);
   };
 
-  useEffect(() => {
-    if (!loading) {
-      if (!user && rootSegment !== "(auth)") {
-        router.navigate("/(auth)/login");
-      } else if (user && !user.onBoardingCompleted && rootSegment !== "(onboarding)") {
-        router.navigate("/(onboarding)/welcome");
-      } else if (user && user.onBoardingCompleted && rootSegment !== "(tabs)") {
-        router.navigate("/(tabs)/home");
-      }
-    }
-  }, [user, loading, rootSegment]);
-
+  // Provide auth context to children
   return (
-    <AuthContext.Provider value={{ user, loading, error, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading: isLoading, error, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
+/**
+ * Hook to access the auth context.
+ * @returns The current auth context value
+ */
 export function useAuth() {
   return useContext(AuthContext);
 }

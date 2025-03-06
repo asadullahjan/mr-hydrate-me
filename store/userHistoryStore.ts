@@ -1,16 +1,16 @@
 import { create } from "zustand";
 import { db } from "@/firebaseConfig";
 import { collection, getDocs, query, where } from "firebase/firestore";
-import { Alert } from "react-native";
 import moment from "moment";
 
-export type WaterEntry = {
+// Define interfaces for type safety
+export interface WaterEntry {
   id: string;
   amount: number;
   time: string;
-};
+}
 
-export type DailyRecord = {
+export interface DailyRecord {
   date: string;
   baseGoal: number;
   completedAmount: number;
@@ -19,26 +19,42 @@ export type DailyRecord = {
   lastUpdated: string;
   percentage: number;
   entries: WaterEntry[];
-};
+}
 
-type HistoryStore = {
-  history: Record<string, DailyRecord>; // Object with date as key
+interface HistoryStore {
+  history: Record<string, DailyRecord>;
   loading: boolean;
   fetchHistory: (userId: string, startDate: Date, endDate: Date) => Promise<void>;
-};
+}
 
+/**
+ * Zustand store for managing user water intake history.
+ */
 export const useUserHistoryStore = create<HistoryStore>((set) => ({
   history: {},
   loading: false,
-  fetchHistory: async (userId, startDate, endDate) => {
+
+  /**
+   * Fetches user water intake history for a specified date range from Firestore.
+   * @param userId - The ID of the user whose history is fetched
+   * @param startDate - The start date of the range
+   * @param endDate - The end date of the range
+   * @throws Error if Firestore operations fail (caught and alerted)
+   */
+  fetchHistory: async (userId: string, startDate: Date, endDate: Date) => {
     set({ loading: true });
 
     try {
-      const recordsRef = collection(db, `/users/${userId}/dailyRecords`);
-      const q = query(recordsRef, where("date", ">=", startDate), where("date", "<=", endDate));
-
+      // Query Firestore for daily records within the date range
+      const recordsRef = collection(db, `users/${userId}/dailyRecords`);
+      const q = query(
+        recordsRef,
+        where("date", ">=", moment(startDate).startOf("day").toDate()),
+        where("date", "<=", moment(endDate).endOf("day").toDate())
+      );
       const snapshot = await getDocs(q);
 
+      // Process snapshot into history data
       const historyData: Record<string, DailyRecord> = {};
       snapshot.forEach((doc) => {
         const data = doc.data();
@@ -52,15 +68,15 @@ export const useUserHistoryStore = create<HistoryStore>((set) => ({
           percentage: data.percentage || 0,
           entries: Array.isArray(data.entries)
             ? data.entries.map((entry: any) => ({
-              id: entry.id,
-              amount: entry.amount,
-              time: entry.time,
+              id: entry.id || "",
+              amount: entry.amount || 0,
+              time: entry.time || "",
             }))
             : [],
         };
       });
 
-      // Fill missing days
+      // Fill missing days with default records
       for (let m = moment(startDate); m.isSameOrBefore(endDate); m.add(1, "days")) {
         const dateKey = m.format("YYYY-MM-DD");
         if (!(dateKey in historyData)) {
@@ -79,9 +95,9 @@ export const useUserHistoryStore = create<HistoryStore>((set) => ({
 
       set({ history: historyData, loading: false });
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       console.error("Error fetching user history:", error);
-      Alert.alert("Error", "Failed to fetch history: " + (error as Error).message);
-      set({ loading: false });
+      set({ history: {}, loading: false }); // Reset history on error
     }
   },
 }));

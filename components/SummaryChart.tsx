@@ -1,90 +1,68 @@
-import { db } from "@/firebaseConfig";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { ScrollView, View, Dimensions } from "react-native";
-import moment from "moment";
 import React, { useState, useEffect } from "react";
-import ArcProgress from "./ArcProgress";
-import { BarChart, LineChart } from "react-native-chart-kit";
-import { getWeekMonthData } from "@/services/get-week-month-progress";
+import { View, Dimensions, StyleSheet } from "react-native";
+import { LineChart } from "react-native-chart-kit";
 import { useTheme } from "react-native-paper";
+import moment from "moment";
 import { LineChartData } from "react-native-chart-kit/dist/line-chart/LineChart";
 
-const WaterIntakeChart = ({
+// Define props interface
+interface WaterIntakeChartProps {
+  userId: string;
+  data: any; // Consider typing this based on your data structure
+  loading: boolean;
+  viewMode?: "week" | "month"; // Determines label format
+}
+
+/**
+ * WaterIntakeChart displays a line chart of water intake progress over a week or month.
+ * @param userId - The ID of the user whose data is displayed
+ * @param data - The water intake data to process and display
+ * @param loading - Indicates if data is still loading
+ * @param viewMode - "week" or "month" to adjust label format (default: "week")
+ */
+const WaterIntakeChart: React.FC<WaterIntakeChartProps> = ({
   userId,
   data,
   loading,
-  viewMode = "week", // Add viewMode prop to determine label format
-}: {
-  userId: string;
-  data: any;
-  loading: boolean;
-  viewMode?: "week" | "month";
+  viewMode = "week",
 }) => {
-  const [Data, setData] = useState<LineChartData | null>(null);
-  const theme = useTheme();
+  // State for chart data
+  const [chartData, setChartData] = useState<LineChartData | null>(null);
+
+  // Hooks for theme and window dimensions
+  const { colors } = useTheme();
   const windowWidth = Dimensions.get("window").width;
 
+  // Process data when it changes
   useEffect(() => {
     if (!loading && data) {
       const processedData = processDataForChart(data, viewMode);
-
-      // Format data for the chart
-      setData({
+      setChartData({
         labels: processedData.map((item) => item.x),
         datasets: [
           {
             data: processedData.map((item) => item.percentage),
             withDots: viewMode === "week",
           },
-          {
-            data: [0], //min y with no dots to make it hidden
-            withDots: false,
-          },
-          {
-            data: [100], //max y with no dots to make it hidden
-            withDots: false,
-          },
+          { data: [0], withDots: false }, // Min Y-axis bound (hidden)
+          { data: [100], withDots: false }, // Max Y-axis bound (hidden)
         ],
       });
     }
-  }, [userId, data, viewMode]);
+  }, [userId, data, loading, viewMode]);
 
-  // Dynamically determine label size and skipping based on view mode
-  const getLabelStyle = () => {
-    switch (viewMode) {
-      case "month":
-        return {
-          fontSize: 8,
-          rotation: 45,
-        };
-      case "week":
-        return {
-          fontSize: 10,
-          rotation: 0,
-        };
-      default:
-        return {
-          fontSize: 10,
-          rotation: 0,
-        };
-    }
-  };
+  // Dynamic label styling based on view mode
+  const getLabelStyle = () =>
+    viewMode === "month" ? { fontSize: 8, rotation: 45 } : { fontSize: 10, rotation: 0 };
 
   const labelStyle = getLabelStyle();
 
   return (
-    <View style={{ alignItems: "center", overflow: "visible" }}>
-      {Data && Data.labels.length > 0 && (
-        <View
-          style={{
-            padding: 20,
-            backgroundColor: theme.colors.background,
-            borderRadius: 10,
-            overflow: "visible",
-          }}
-        >
+    <View style={styles.container}>
+      {chartData && chartData.labels.length > 0 && (
+        <View style={[styles.chartWrapper, { backgroundColor: colors.background }]}>
           <LineChart
-            data={Data}
+            data={chartData}
             width={windowWidth - 20}
             height={230}
             yAxisSuffix="%"
@@ -95,24 +73,16 @@ const WaterIntakeChart = ({
             segments={4}
             transparent={true}
             bezier
-            style={{
-              marginLeft: -40, // Reduce left margin
-              marginBottom: -20, // Reduce bottom margin
-            }}
+            style={styles.chartStyle}
             chartConfig={{
               decimalPlaces: 0,
-              color: (opacity = 1) => theme.colors.primary,
-              labelColor: (opacity = 1) => theme.colors.primary,
+              color: (opacity = 1) => colors.primary,
+              labelColor: (opacity = 1) => colors.primary,
               style: {
                 borderRadius: 16,
-                borderWidth: 2,
-                borderColor: "black",
               },
               barPercentage: 0.8,
               strokeWidth: 1,
-              // Define step size for Y-axis
-              count: 5,
-              // Compact Y-axis labels
               propsForVerticalLabels: {
                 fontSize: labelStyle.fontSize,
                 rotation: labelStyle.rotation,
@@ -125,47 +95,44 @@ const WaterIntakeChart = ({
   );
 };
 
-export default WaterIntakeChart;
-
-// Improved process for chart with smart labeling based on view mode
-const processDataForChart = (Data: any, viewMode = "week") => {
-  const dataEntries = Object.entries(Data)
-    .map(([dateString, data]) => {
-      const momentDate = moment(dateString);
-      return {
-        originalDate: dateString,
-        momentObj: momentDate,
-        // Will be replaced with appropriate format based on viewMode
-        x: "",
-        y: data.totalAmount,
-        percentage: data.percentage || 0,
-      };
-    })
+/**
+ * Processes raw data into a format suitable for the chart based on view mode.
+ * @param data - Raw water intake data
+ * @param viewMode - "week" or "month" to determine label format
+ * @returns Array of processed data points with labels and percentages
+ */
+const processDataForChart = (data: any, viewMode: "week" | "month" = "week") => {
+  const dataEntries = Object.entries(data)
+    .map(([dateString, entry]: [string, any]) => ({
+      originalDate: dateString,
+      momentObj: moment(dateString),
+      x: "", // Placeholder for label
+      percentage: entry.percentage || 0,
+    }))
     .sort((a, b) => a.momentObj.valueOf() - b.momentObj.valueOf());
 
-  // Apply appropriate labeling strategy based on viewMode
-  return dataEntries.map((entry, index, array) => {
-    const { momentObj } = entry;
-    let xLabel = "";
-
-    switch (viewMode) {
-      case "week":
-        // For week view, show day abbreviations
-        xLabel = momentObj.format("ddd");
-        break;
-
-      case "month":
-        xLabel = momentObj.format("D");
-        break;
-
-      default:
-        xLabel = momentObj.format("D");
-    }
-
-    return {
-      ...entry,
-      x: xLabel,
-      momentObj: undefined, // Remove moment object from final result
-    };
-  });
+  return dataEntries.map((entry) => ({
+    ...entry,
+    x: viewMode === "week" ? entry.momentObj.format("ddd") : entry.momentObj.format("D"),
+    momentObj: undefined, // Remove moment object from final result
+  }));
 };
+
+// Styles for the WaterIntakeChart component
+const styles = StyleSheet.create({
+  container: {
+    alignItems: "center",
+    overflow: "visible",
+  },
+  chartWrapper: {
+    padding: 20,
+    borderRadius: 10,
+    overflow: "visible",
+  },
+  chartStyle: {
+    marginLeft: -40, // Adjust for label visibility
+    marginBottom: -20, // Reduce bottom margin
+  },
+});
+
+export default WaterIntakeChart;

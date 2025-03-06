@@ -1,163 +1,23 @@
 import { useAuth } from "@/components/Auth/AuthProvider";
-import { auth, db } from "@/firebaseConfig";
+import { auth } from "@/firebaseConfig";
 import { updateUserData } from "@/services/update-user-profile";
 import { router, useNavigation } from "expo-router";
-import { setDoc, doc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
-import { Alert, View } from "react-native";
+import { Alert, View, StyleSheet } from "react-native";
 import { TextInput, Text, Button, RadioButton, ProgressBar, Surface } from "react-native-paper";
 
-const OnBoarding = () => {
-  const totalSteps = questions.length;
-  const [step, setStep] = useState(0);
-  const [formData, setFormData] = useState<{ [key: string]: any }>({});
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const navigation = useNavigation();
-  const { refreshUser } = useAuth();
+// Define the shape of a question
+interface Question {
+  field: string;
+  question: string;
+  type: "text" | "number" | "radio";
+  placeholder?: string;
+  options?: { id: string; label: string; description?: string }[];
+  validate: (value: string) => boolean;
+}
 
-  const updateFormData = (field: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: questions[step].type === "number" ? (value ? Number(value) : "") : value,
-    }));
-    setError(""); // Clear error on change
-  };
-
-  const handleNext = async () => {
-    const currentQuestion = questions[step];
-
-    if (!currentQuestion.validate(formData[currentQuestion.field])) {
-      setError("Please enter a valid value.");
-      return;
-    }
-
-    if (step < totalSteps - 1) {
-      setStep(step + 1);
-      return;
-    }
-
-    // Save to Firebase when last step is reached
-    const user = auth.currentUser;
-    if (!user) return;
-    setLoading(true);
-
-    try {
-      await updateUserData(user.uid, {
-        profile: formData,
-        generalData: { onBoardingCompleted: true },
-      });
-      await refreshUser();
-    } catch (error: any) {
-      console.error("Error saving onboarding data:", error);
-      Alert.alert("Error", error.message || "An error occurred");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleBack = () => {
-    if (step > 0) setStep(step - 1);
-  };
-
-  useEffect(() => {
-    navigation.addListener("beforeRemove", (e) => {
-      e.preventDefault(); // Disable back button
-    });
-  }, []);
-
-  const currentQuestion = questions[step];
-
-  return (
-    <View style={{ flex: 1, backgroundColor: "white", padding: 16 }}>
-      {/* Progress Bar */}
-      <ProgressBar
-        progress={(step + 1) / totalSteps}
-        style={{ marginBottom: 24 }}
-      />
-
-      {/* Step Counter */}
-      <Text
-        variant="bodyLarge"
-        style={{ marginBottom: 24, color: "gray" }}
-      >
-        Step {step + 1} of {totalSteps}
-      </Text>
-
-      {/* Question */}
-      <Text
-        variant="headlineMedium"
-        style={{ marginBottom: 15 }}
-      >
-        {currentQuestion.question}
-      </Text>
-
-      {/* Input Field */}
-      {currentQuestion.type === "text" || currentQuestion.type === "number" ? (
-        <TextInput
-          mode="outlined"
-          keyboardType={currentQuestion.type === "number" ? "numeric" : "default"}
-          value={formData[currentQuestion.field] || ""}
-          onChangeText={(text) => updateFormData(currentQuestion.field, text)}
-          placeholder={currentQuestion.placeholder}
-        />
-      ) : currentQuestion.type === "radio" ? (
-        <RadioButton.Group
-          onValueChange={(value) => updateFormData(currentQuestion.field, value)}
-          value={formData[currentQuestion.field] || ""}
-        >
-          {currentQuestion.options?.map((option) => (
-            <Surface
-              key={option.id}
-              elevation={1}
-              style={{ marginBottom: 8, borderRadius: 8 }}
-            >
-              <RadioButton.Item
-                label={option.label}
-                value={option.id}
-              />
-            </Surface>
-          ))}
-        </RadioButton.Group>
-      ) : null}
-
-      {/* Error Message */}
-      {error ? <Text style={{ color: "red", marginTop: 8 }}>{error}</Text> : null}
-
-      {/* Navigation Buttons */}
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          marginTop: "auto",
-          paddingTop: 16,
-        }}
-      >
-        <Button
-          mode="contained"
-          onPress={handleBack}
-          disabled={step === 0}
-          style={{ flex: 1, marginRight: 8 }}
-        >
-          Back
-        </Button>
-        <Button
-          mode="contained"
-          onPress={handleNext}
-          loading={loading}
-          disabled={loading}
-          style={{ flex: 1, marginLeft: 8 }}
-        >
-          {step === totalSteps - 1 ? "Finish" : "Next"}
-        </Button>
-      </View>
-    </View>
-  );
-};
-
-export default OnBoarding;
-
-const questions = [
+// List of onboarding questions
+const questions: Question[] = [
   {
     field: "name",
     question: "What's your name?",
@@ -200,3 +60,209 @@ const questions = [
     validate: (value: string) => value.trim() !== "",
   },
 ];
+
+/**
+ * OnBoarding component guides users through a multi-step form to collect profile data.
+ * Data is saved to Firebase upon completion.
+ */
+const OnBoarding = () => {
+  const totalSteps = questions.length;
+  // Current step in the onboarding process
+  const [step, setStep] = useState(0);
+  // Form data collected from user input
+  const [formData, setFormData] = useState<{ [key: string]: string | number }>({});
+  // Loading state during data submission
+  const [loading, setLoading] = useState(false);
+  // Error message for validation or submission errors
+  const [error, setError] = useState("");
+  const navigation = useNavigation();
+  const { refreshUser } = useAuth();
+
+  // Prevent navigation away from onboarding
+  useEffect(() => {
+    navigation.addListener("beforeRemove", (e) => {
+      e.preventDefault(); // Disable back button
+    });
+  }, [navigation]);
+
+  /**
+   * Updates form data for the current question.
+   * @param field - The question's field name
+   * @param value - The user's input value
+   */
+  const updateFormData = (field: string, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: questions[step].type === "number" ? (value ? Number(value) : "") : value,
+    }));
+    setError(""); // Clear error on input change
+  };
+
+  /**
+   * Handles navigation to the next step or submits data on the final step.
+   */
+  const handleNext = async () => {
+    const currentQuestion = questions[step];
+
+    if (!currentQuestion.validate(formData[currentQuestion.field]?.toString() || "")) {
+      setError("Please enter a valid value.");
+      return;
+    }
+
+    if (step < totalSteps - 1) {
+      setStep(step + 1);
+      return;
+    }
+
+    // Submit data on the final step
+    const user = auth.currentUser;
+    if (!user) return;
+
+    setLoading(true);
+    try {
+      await updateUserData(user.uid, {
+        profile: formData,
+        generalData: { onBoardingCompleted: true },
+      });
+      await refreshUser();
+      router.replace("/(tabs)/home"); // Redirect to main app after completion
+    } catch (error: any) {
+      console.error("Error saving onboarding data:", error);
+      Alert.alert("Error", error.message || "An error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * Handles navigation to the previous step.
+   */
+  const handleBack = () => {
+    if (step > 0) setStep(step - 1);
+  };
+
+  const currentQuestion = questions[step];
+
+  return (
+    <View style={styles.container}>
+      {/* Progress Bar */}
+      <ProgressBar
+        progress={(step + 1) / totalSteps}
+        style={styles.progressBar}
+      />
+
+      {/* Step Counter */}
+      <Text
+        variant="bodyLarge"
+        style={styles.stepCounter}
+      >
+        Step {step + 1} of {totalSteps}
+      </Text>
+
+      {/* Question */}
+      <Text
+        variant="headlineMedium"
+        style={styles.question}
+      >
+        {currentQuestion.question}
+      </Text>
+
+      {/* Input Field */}
+      {currentQuestion.type === "text" || currentQuestion.type === "number" ? (
+        <TextInput
+          mode="outlined"
+          keyboardType={currentQuestion.type === "number" ? "numeric" : "default"}
+          value={formData[currentQuestion.field]?.toString() || ""}
+          onChangeText={(text) => updateFormData(currentQuestion.field, text)}
+          placeholder={currentQuestion.placeholder}
+          style={styles.input}
+        />
+      ) : currentQuestion.type === "radio" ? (
+        <RadioButton.Group
+          onValueChange={(value) => updateFormData(currentQuestion.field, value)}
+          value={formData[currentQuestion.field]?.toString() || ""}
+        >
+          {currentQuestion.options?.map((option) => (
+            <Surface
+              key={option.id}
+              elevation={1}
+              style={styles.radioOption}
+            >
+              <RadioButton.Item
+                label={option.label}
+                value={option.id}
+              />
+            </Surface>
+          ))}
+        </RadioButton.Group>
+      ) : null}
+
+      {/* Error Message */}
+      {error && <Text style={styles.errorText}>{error}</Text>}
+
+      {/* Navigation Buttons */}
+      <View style={styles.buttonContainer}>
+        <Button
+          mode="contained"
+          onPress={handleBack}
+          disabled={step === 0}
+          style={styles.button}
+        >
+          Back
+        </Button>
+        <Button
+          mode="contained"
+          onPress={handleNext}
+          loading={loading}
+          disabled={loading}
+          style={styles.button}
+        >
+          {step === totalSteps - 1 ? "Finish" : "Next"}
+        </Button>
+      </View>
+    </View>
+  );
+};
+
+// Styles for the component
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "white",
+    padding: 16,
+  },
+  progressBar: {
+    marginBottom: 24,
+  },
+  stepCounter: {
+    marginBottom: 24,
+    color: "gray",
+  },
+  question: {
+    marginBottom: 15,
+  },
+  input: {
+    marginBottom: 8,
+  },
+  radioOption: {
+    marginBottom: 8,
+    borderRadius: 8,
+  },
+  errorText: {
+    color: "red",
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: "auto",
+    paddingTop: 16,
+  },
+  button: {
+    flex: 1,
+    marginHorizontal: 4,
+  },
+});
+
+export default OnBoarding;

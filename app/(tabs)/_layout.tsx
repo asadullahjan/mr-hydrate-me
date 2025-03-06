@@ -1,15 +1,22 @@
 import { router, Tabs } from "expo-router";
 import { FontAwesome, Ionicons } from "@expo/vector-icons";
 import { ActivityIndicator, useTheme } from "react-native-paper";
-import { Alert, StyleProp, TouchableOpacity, View, ViewStyle, StyleSheet } from "react-native";
-import { LocationProvider, useLocation } from "@/components/Location/LocationProvider";
-import { useEffect } from "react";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { useAuth } from "@/components/Auth/AuthProvider";
 import { AddDrinkModal } from "@/components/AddDrinkModal";
+import { LocationProvider } from "@/components/Location/LocationProvider";
 import { NotificationsProvider } from "@/components/Notifications/NotificationsProvider";
 
-// Define your main tab routes as an array of objects
-const MAIN_TAB_ROUTES = [
+// Define the structure of a tab route
+interface TabRoute {
+  name: string;
+  icon: string;
+  title: string;
+  hidden?: boolean;
+}
+
+// Main tab routes configuration
+const MAIN_TAB_ROUTES: TabRoute[] = [
   { name: "home/index", icon: "home", title: "Home" },
   { name: "history/index", icon: "history", title: "History" },
   { name: "leaderboard/index", icon: "trophy", title: "Leaderboard" },
@@ -20,39 +27,43 @@ const MAIN_TAB_ROUTES = [
     title: "Notifications Settings",
     hidden: true,
   },
-  { name: "profile/resetPassword/index", icon: "", title: "Reset password", hidden: true },
-  { name: "profile/profileUpdate/index", icon: "", title: "Reset password", hidden: true },
+  { name: "profile/resetPassword/index", icon: "", title: "Reset Password", hidden: true },
+  { name: "profile/profileUpdate/index", icon: "", title: "Edit Profile", hidden: true },
 ];
 
-export default function TabsLayout() {
-  const theme = useTheme();
-  const { user, loading } = useAuth();
-  const sceneStyle: StyleProp<ViewStyle> = {
-    backgroundColor: "white",
-  };
+/**
+ * TabsLayout defines the main navigation structure with a tab bar and a floating action button.
+ * Wraps the app in LocationProvider and NotificationsProvider.
+ */
+const TabsLayout = () => {
+  // Hooks for theme and auth
+  const { colors } = useTheme();
+  const { user, loading: isAuthLoading } = useAuth();
 
-  if (loading) {
-    return <ActivityIndicator style={{ margin: "auto" }} />;
+  // Show loading indicator while auth state is being determined
+  if (isAuthLoading) {
+    return <ActivityIndicator style={styles.loading} />;
   }
 
   return (
     <LocationProvider>
       <NotificationsProvider>
         <View style={styles.container}>
+          {/* Main Tab Navigation */}
           <Tabs
             screenOptions={{
-              tabBarActiveTintColor: theme.colors.primary,
-              tabBarInactiveTintColor: theme.colors.secondary,
+              tabBarActiveTintColor: colors.primary,
+              tabBarInactiveTintColor: colors.secondary,
               headerShown: false,
               tabBarStyle: {
-                backgroundColor: theme.colors.background,
+                backgroundColor: colors.background,
                 borderTopLeftRadius: 20,
                 borderTopRightRadius: 20,
                 height: 80,
               },
               tabBarItemStyle: {
                 height: 50,
-                margin: "auto",
+                marginVertical: "auto",
               },
             }}
           >
@@ -69,42 +80,44 @@ export default function TabsLayout() {
                       color={color}
                     />
                   ),
-                  ...(tab.hidden && { href: null }),
-                  sceneStyle,
+                  ...(tab.hidden && { href: null }), // Hide from tab bar if marked as hidden
+                  sceneStyle: { backgroundColor: "white" },
                 }}
               />
             ))}
           </Tabs>
-          {/* Plus button overlaid on top of the tab bar */}
+
+          {/* Floating Action Button for Adding Drink */}
           <AddDrinkModal>
-            {/* <View style={styles.fabContainer}> */}
-            <TouchableOpacity style={[styles.fab, { backgroundColor: theme.colors.primary }]}>
+            <TouchableOpacity style={[styles.fab, { backgroundColor: colors.primary }]}>
               <Ionicons
                 name="add"
                 size={24}
-                color={theme.colors.onPrimary}
+                color={colors.onPrimary}
               />
             </TouchableOpacity>
-            {/* </View> */}
           </AddDrinkModal>
         </View>
       </NotificationsProvider>
     </LocationProvider>
   );
-}
+};
 
+// Styles for the TabsLayout component
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+  },
+  loading: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   fab: {
     position: "absolute",
     bottom: 55,
     alignSelf: "center",
     zIndex: 1,
-    padding: 0,
     width: 50,
     height: 50,
     borderRadius: 30,
@@ -112,3 +125,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 });
+
+export default TabsLayout;

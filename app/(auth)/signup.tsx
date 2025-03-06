@@ -1,42 +1,55 @@
 import React, { useState } from "react";
 import { StyleSheet, View } from "react-native";
-import {
-  TextInput,
-  Button,
-  Text,
-  useTheme,
-  Surface,
-  HelperText,
-  Provider as PaperProvider,
-  DefaultTheme,
-} from "react-native-paper";
+import { TextInput, Button, Text, HelperText } from "react-native-paper";
 import { useForm, Controller } from "react-hook-form";
 import { auth, db } from "@/firebaseConfig";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { setDoc, doc, collection } from "firebase/firestore";
-import { router, useNavigation } from "expo-router";
+import { router } from "expo-router";
 import getErrorMessage from "../../utils/getErrorMessage";
 
+// Define the shape of the form data
+interface FormData {
+  email: string;
+  password: string;
+}
+
+/**
+ * SignUpForm component handles user registration with email and password.
+ * It uses react-hook-form for form management and Firebase for authentication and data storage.
+ */
 const SignUpForm = () => {
+  // State to toggle password visibility
   const [showPassword, setShowPassword] = useState(false);
+  // State to store error messages
   const [error, setError] = useState<string | null>(null);
+  // State to indicate loading status during sign-up
   const [isLoading, setIsLoading] = useState(false);
+
+  // Form setup with react-hook-form
   const {
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm({
+  } = useForm<FormData>({
     defaultValues: {
       email: "",
       password: "",
     },
+    mode: "onChange", // Validate on each change
   });
 
-  const onSubmit = async ({ email, password }: any) => {
+  /**
+   * Handles form submission by creating a new user with Firebase Auth and initializing Firestore data.
+   * @param data - Form data containing email and password
+   */
+  const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     setError(null);
+
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+      // Initialize user data in Firestore
       await setDoc(
         doc(collection(db, "users"), userCredential.user.uid),
         {
@@ -45,6 +58,7 @@ const SignUpForm = () => {
         },
         { merge: true }
       );
+      // Successful sign-up redirects handled by Firebase auth state listener elsewhere
     } catch (error: any) {
       setError(getErrorMessage(error.code));
     } finally {
@@ -53,105 +67,104 @@ const SignUpForm = () => {
   };
 
   return (
-    <>
-      <View>
-        {/* Email Input */}
-        <Controller
-          control={control}
-          rules={{
-            required: "Email is required",
-            pattern: {
-              value: /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/,
-              message: "Invalid email format",
-            },
-          }}
-          render={({ field: { onChange, onBlur, value } }) => (
-            <>
-              <TextInput
-                label="Email"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                mode="outlined"
-                error={!!errors.email}
-                theme={{ colors: { background: "white" } }}
-              />
-              <HelperText
-                type="error"
-                visible={!!errors.email}
-              >
-                {errors.email?.message}
-              </HelperText>
-            </>
-          )}
-          name="email"
-        />
+    <View>
+      {/* Email Input */}
+      <Controller
+        control={control}
+        name="email"
+        rules={{
+          required: "Email is required",
+          pattern: {
+            value: /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/,
+            message: "Invalid email format",
+          },
+        }}
+        render={({ field: { onChange, onBlur, value } }) => (
+          <>
+            <TextInput
+              label="Email"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              mode="outlined"
+              error={!!errors.email}
+              style={styles.input}
+            />
+            <HelperText
+              type="error"
+              visible={!!errors.email}
+            >
+              {errors.email?.message}
+            </HelperText>
+          </>
+        )}
+      />
 
-        {/* Password Input */}
-        <Controller
-          control={control}
-          rules={{
-            required: "Password is required",
-            minLength: {
-              value: 6,
-              message: "Password must be at least 6 characters",
-            },
-          }}
-          render={({ field: { onChange, onBlur, value } }) => (
-            <>
-              <TextInput
-                label="Password"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                theme={{ colors: { background: "white" } }}
-                right={
-                  <TextInput.Icon
-                    icon={showPassword ? "eye-off" : "eye"}
-                    onPress={() => setShowPassword(!showPassword)}
-                    size={20}
-                  />
-                }
-                mode="outlined"
-                error={!!errors.password}
-              />
-              <HelperText
-                type="error"
-                visible={!!errors.password}
-              >
-                {errors.password?.message}
-              </HelperText>
-            </>
-          )}
-          name="password"
-        />
-      </View>
+      {/* Password Input */}
+      <Controller
+        control={control}
+        name="password"
+        rules={{
+          required: "Password is required",
+          minLength: {
+            value: 6,
+            message: "Password must be at least 6 characters",
+          },
+        }}
+        render={({ field: { onChange, onBlur, value } }) => (
+          <>
+            <TextInput
+              label="Password"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              secureTextEntry={!showPassword}
+              autoCapitalize="none"
+              mode="outlined"
+              error={!!errors.password}
+              style={styles.input}
+              right={
+                <TextInput.Icon
+                  icon={showPassword ? "eye-off" : "eye"}
+                  onPress={() => setShowPassword(!showPassword)}
+                  size={20}
+                />
+              }
+            />
+            <HelperText
+              type="error"
+              visible={!!errors.password}
+            >
+              {errors.password?.message}
+            </HelperText>
+          </>
+        )}
+      />
 
-      {/* Error Message */}
+      {/* Display error message if sign-up fails */}
       {error && (
         <HelperText
           type="error"
-          visible={!!error}
+          visible={true}
         >
           {error}
         </HelperText>
       )}
 
-      {/* Sign Up Button */}
+      {/* Submit Button */}
       <Button
         mode="contained"
         onPress={handleSubmit(onSubmit)}
         loading={isLoading}
         disabled={isLoading}
+        style={styles.button}
       >
         {isLoading ? "Creating Account..." : "Create Account"}
       </Button>
 
-      {/* Login Link */}
+      {/* Footer with navigation to login */}
       <View style={styles.loginContainer}>
         <Text variant="bodyMedium">Already have an account? </Text>
         <Button
@@ -160,24 +173,21 @@ const SignUpForm = () => {
           onPress={() => router.replace("/(auth)/login")}
           style={styles.loginButton}
         >
-          Singin here
+          Sign in here
         </Button>
       </View>
-    </>
+    </View>
   );
 };
 
+// Styles for the component
 const styles = StyleSheet.create({
-  surface: {
-    padding: 20,
-    width: "100%",
-    alignItems: "center",
-    elevation: 4,
-    borderRadius: 8,
+  input: {
+    marginBottom: 8,
+    backgroundColor: "white",
   },
-  title: {
-    marginBottom: 24,
-    textAlign: "center",
+  button: {
+    marginVertical: 10,
   },
   loginContainer: {
     flexDirection: "row",

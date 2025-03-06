@@ -1,3 +1,5 @@
+import React, { useState } from "react";
+import { StyleSheet, TouchableOpacity, Alert, StyleProp, ViewStyle, TextStyle } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import {
   Button,
@@ -8,63 +10,78 @@ import {
   TextInput,
   ActivityIndicator,
 } from "react-native-paper";
-import { StyleSheet, TouchableOpacity, Alert, StyleProp, ViewStyle, TextStyle } from "react-native";
 import { useAuth } from "@/components/Auth/AuthProvider";
-import { useState } from "react";
 import { auth, db } from "@/firebaseConfig";
 import { EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
 import { doc, deleteDoc, collection, getDocs } from "firebase/firestore";
 import getErrorMessage from "@/utils/getErrorMessage";
 
-const DeleteAccount = ({
-  actionButtonStyles,
-  buttonTextStyles,
-}: {
+// Define props interface
+interface DeleteAccountProps {
   actionButtonStyles: StyleProp<ViewStyle>;
   buttonTextStyles: StyleProp<TextStyle>;
-}) => {
-  const { user } = useAuth();
-  const theme = useTheme();
-  const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
-  const [deletingAccount, setDeletingAccount] = useState(false); // Loading state for deletion
-  const [deletePassword, setDeletePassword] = useState(""); // Password for deletion
-  const [deleteError, setDeleteError] = useState(""); // Error for password or deletion
+}
 
+/**
+ * DeleteAccount component provides a button and dialog to permanently delete a user's account and data.
+ * @param actionButtonStyles - Styles for the delete button
+ * @param buttonTextStyles - Styles for the button text
+ */
+const DeleteAccount: React.FC<DeleteAccountProps> = ({ actionButtonStyles, buttonTextStyles }) => {
+  // Hooks for auth and theme
+  const { user } = useAuth();
+  const { colors } = useTheme();
+
+  // State for dialog visibility, loading, password, and errors
+  const [isDeleteDialogVisible, setIsDeleteDialogVisible] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+
+  /**
+   * Handles account deletion after re-authentication and data cleanup.
+   */
   const handleDelete = async () => {
     if (!deletePassword.trim()) {
       setDeleteError("Please enter your password to delete your account.");
       return;
     }
 
-    setDeletingAccount(true); // Start loading state
+    setIsDeletingAccount(true);
 
     try {
-      // Re-authenticate the user with the provided password
-      const credential = EmailAuthProvider.credential(user?.profile.email || "", deletePassword);
-      await reauthenticateWithCredential(auth.currentUser!, credential);
+      if (!user?.uid || !user.profile.email || !auth.currentUser) {
+        throw new Error("User data is incomplete or missing.");
+      }
 
-      // Delete all documents in the user's dailyRecords subcollection
-      const dailyRecordsCollectionRef = collection(db, "users", user?.uid!, "dailyRecords");
-      const dailyRecordsSnapshot = await getDocs(dailyRecordsCollectionRef);
-      const deletePromises = dailyRecordsSnapshot.docs.map((doc) => deleteDoc(doc.ref));
+      // Re-authenticate the user
+      const credential = EmailAuthProvider.credential(user.profile.email, deletePassword);
+      await reauthenticateWithCredential(auth.currentUser, credential);
+
+      // Delete user's dailyRecords subcollection
+      const dailyRecordsRef = collection(db, "users", user.uid, "dailyRecords");
+      const dailyRecordsSnapshot = await getDocs(dailyRecordsRef);
+      const deletePromises = dailyRecordsSnapshot.docs.map((docSnapshot) =>
+        deleteDoc(docSnapshot.ref)
+      );
       await Promise.all(deletePromises);
 
-      // Delete the user's document from Firestore
-      const userDocRef = doc(db, "users", user?.uid!);
+      // Delete user's Firestore document
+      const userDocRef = doc(db, "users", user.uid);
       await deleteDoc(userDocRef);
 
-      // Delete the user's authentication account
-      await auth.currentUser?.delete();
+      // Delete user's authentication account
+      await auth.currentUser.delete();
 
-      // Sign out the user and update app state
-      await auth.signOut(); // Clear the user from Firebase state
-      setDeleteDialogVisible(false);
-      setDeletingAccount(false); 
+      // Sign out and reset state
+      await auth.signOut();
+      setIsDeleteDialogVisible(false);
       Alert.alert("Success", "Your account and all data have been deleted.");
     } catch (error: any) {
-      setDeletingAccount(false); // Stop loading state on error
-      console.error(error.code);
-      setDeleteError(getErrorMessage(error.code));
+      setDeleteError(getErrorMessage(error.code || error.message));
+      console.error("Delete account error:", error);
+    } finally {
+      setIsDeletingAccount(false);
     }
   };
 
@@ -72,31 +89,30 @@ const DeleteAccount = ({
     <>
       {/* Delete Account Button */}
       <TouchableOpacity
-        style={[actionButtonStyles, { backgroundColor: theme.colors.background }]}
-        onPress={() => setDeleteDialogVisible(true)}
-        disabled={deletingAccount}
+        style={[actionButtonStyles, { backgroundColor: colors.background }]}
+        onPress={() => setIsDeleteDialogVisible(true)}
+        disabled={isDeletingAccount}
       >
-        {deletingAccount ? (
-          <ActivityIndicator />
+        {isDeletingAccount ? (
+          <ActivityIndicator color={colors.error} />
         ) : (
           <MaterialIcons
             name="delete-forever"
             size={32}
-            color={theme.colors.error}
+            color={colors.error}
           />
         )}
-        <Text style={[buttonTextStyles, { color: theme.colors.error }]}>Delete</Text>
+        <Text style={[buttonTextStyles, { color: colors.error }]}>Delete</Text>
       </TouchableOpacity>
 
-      {/* Confirmation Dialogs */}
+      {/* Delete Confirmation Dialog */}
       <Portal>
-        {/* Delete Account Confirmation with Password */}
         <Dialog
-          visible={deleteDialogVisible}
+          visible={isDeleteDialogVisible}
           onDismiss={() => {
-            setDeleteDialogVisible(false);
-            setDeletePassword(""); // Clear password on dismiss
-            setDeleteError(""); // Clear error on dismiss
+            setIsDeleteDialogVisible(false);
+            setDeletePassword("");
+            setDeleteError("");
           }}
         >
           <Dialog.Title>Delete Account</Dialog.Title>
@@ -107,29 +123,32 @@ const DeleteAccount = ({
             </Text>
             <TextInput
               label="Password"
+              value={deletePassword}
               onChangeText={setDeletePassword}
               mode="outlined"
               secureTextEntry
               style={styles.input}
               error={!!deleteError}
+              disabled={isDeletingAccount}
             />
             {deleteError && <Text style={styles.errorText}>{deleteError}</Text>}
           </Dialog.Content>
           <Dialog.Actions>
             <Button
               onPress={() => {
-                setDeleteDialogVisible(false);
-                setDeletePassword(""); // Clear password on cancel
-                setDeleteError(""); // Clear error on cancel
+                setIsDeleteDialogVisible(false);
+                setDeletePassword("");
+                setDeleteError("");
               }}
+              disabled={isDeletingAccount}
             >
               Cancel
             </Button>
             <Button
-              textColor={theme.colors.error}
+              textColor={colors.error}
               onPress={handleDelete}
-              loading={deletingAccount}
-              disabled={deletingAccount}
+              loading={isDeletingAccount}
+              disabled={isDeletingAccount}
             >
               Delete
             </Button>
@@ -140,6 +159,7 @@ const DeleteAccount = ({
   );
 };
 
+// Styles for the DeleteAccount component
 const styles = StyleSheet.create({
   input: {
     marginVertical: 10,

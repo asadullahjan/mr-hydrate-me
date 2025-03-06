@@ -1,48 +1,87 @@
-import { User } from '@/components/Auth/AuthProvider';
-import { db } from '@/firebaseConfig';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { arrayUnion } from 'firebase/firestore';
-import moment from 'moment';
+import { User } from "@/components/Auth/AuthProvider";
+import { db } from "@/firebaseConfig";
+import { doc, setDoc, getDoc } from "firebase/firestore";
+import { arrayUnion } from "firebase/firestore";
+import moment from "moment";
 
-export const addWaterIntake = async ({ user, amount, date = new Date() }: { user: User, amount: number, date?: Date }) => {
-  const dateKey = moment(date).format('YYYY-MM-DD');
+/**
+ * Adds water intake to a user's daily record and updates their streak if applicable.
+ * @param user - The authenticated user object
+ * @param amount - The amount of water to add (in ml)
+ * @param date - The date of the intake (default: current date)
+ * @returns An object containing the updated percentage
+ * @throws Error if user or user.uid is missing
+ */
+export const addWaterIntake = async ({
+  user,
+  amount,
+  date = new Date(),
+}: {
+  user: User;
+  amount: number;
+  date?: Date;
+}) => {
+  // Validate input
+  if (!user || !user.uid) {
+    throw new Error("User is not authenticated or missing UID");
+  }
+
+  // Format date and prepare references
+  const dateKey = moment(date).format("YYYY-MM-DD");
   const timestamp = date.toISOString();
-  const dayRef = doc(db, `users/${user?.uid}/dailyRecords/${dateKey}`);
-  const userRef = doc(db, `users/${user?.uid}`);
+  const dayRef = doc(db, `users/${user.uid}/dailyRecords/${dateKey}`);
+  const userRef = doc(db, `users/${user.uid}`);
 
-  const docSnap = await getDoc(dayRef);
+  // Fetch existing data
+  const daySnap = await getDoc(dayRef);
   const userSnap = await getDoc(userRef);
 
-  const currentData = docSnap.exists() ? docSnap.data() : { totalAmount: 2000, completedAmount: 0 }; // Default totalAmount to 2000ml
-  const userData = userSnap.exists() ? userSnap.data() : { lastStreakUpdate: null, currentStreak: 0 };
+  const currentData = daySnap.exists()
+    ? daySnap.data()
+    : { totalAmount: 2000, completedAmount: 0 }; // Default goal: 2000ml
+  const userData = userSnap.exists()
+    ? userSnap.data()
+    : { lastStreakUpdate: null, currentStreak: 0 };
 
+  // Calculate new values
   const newCompletedAmount = (currentData.completedAmount || 0) + amount;
   const newPercentage = Math.min((newCompletedAmount / currentData.totalAmount) * 100, 100);
-  const roundedPercentage = Math.round(newPercentage); // Round to nearest integer
+  const roundedPercentage = Math.round(newPercentage);
 
-  // Save percentage as an integer (number)
-  await setDoc(dayRef, {
-    date: moment(dateKey).startOf('day').toDate(),
-    completedAmount: newCompletedAmount,
-    percentage: roundedPercentage, // Store as an integer
-    entries: arrayUnion({ id: timestamp, time: timestamp, amount }),
-  }, { merge: true });
+  // Update daily record
+  await setDoc(
+    dayRef,
+    {
+      date: moment(dateKey).startOf("day").toDate(),
+      completedAmount: newCompletedAmount,
+      percentage: roundedPercentage,
+      entries: arrayUnion({ id: timestamp, time: timestamp, amount }),
+    },
+    { merge: true }
+  );
 
-  // Check for streak update
+  // Update streak if goal is met
   if (roundedPercentage >= 100) {
-    const lastStreakDate = moment(userData.lastStreakUpdate);
-    const yesterday = moment(date).subtract(1, 'day');
+    const lastStreakDate = userData.lastStreakUpdate
+      ? moment(userData.lastStreakUpdate)
+      : null;
+    const currentDate = moment(date);
+    const yesterday = currentDate.clone().subtract(1, "day");
 
     let newStreak = userData.currentStreak || 0;
-    let lastStreakUpdate = moment(date).toDate();
+    const lastStreakUpdate = currentDate.toDate();
 
-    if (lastStreakDate.isSame(yesterday, 'day')) {
+    if (lastStreakDate?.isSame(yesterday, "day")) {
       newStreak += 1; // Continue streak
-    } else if (!lastStreakDate.isSame(moment(date), 'day')) {
-      newStreak = 1; // Reset streak
+    } else if (!lastStreakDate?.isSame(currentDate, "day")) {
+      newStreak = 1; // Start new streak
     }
 
-    await setDoc(userRef, { lastStreakUpdate, currentStreak: newStreak }, { merge: true });
+    await setDoc(
+      userRef,
+      { lastStreakUpdate, currentStreak: newStreak },
+      { merge: true }
+    );
   }
 
   return { percentage: roundedPercentage };

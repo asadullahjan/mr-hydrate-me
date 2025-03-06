@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import * as Notifications from "expo-notifications";
-import { useAuth } from "@/components/Auth/AuthProvider";
-import { db } from "@/firebaseConfig";
 import { doc, setDoc } from "firebase/firestore";
+import { db } from "@/firebaseConfig";
+import { useAuth } from "@/components/Auth/AuthProvider";
 
 // Define the shape of notification settings
 export interface NotificationSettings {
@@ -13,6 +13,7 @@ export interface NotificationSettings {
   soundEnabled: boolean;
 }
 
+// Define the NotificationsState interface
 interface NotificationsState {
   notificationPermission: string | null;
   settings: NotificationSettings;
@@ -21,9 +22,10 @@ interface NotificationsState {
   updateSettings: (newSettings: Partial<NotificationSettings>) => Promise<void>;
 }
 
+// Create the NotificationsContext
 const NotificationsContext = createContext<NotificationsState | undefined>(undefined);
 
-// Default settings
+// Default notification settings
 const defaultSettings: NotificationSettings = {
   enabled: true,
   reminderFrequency: 4,
@@ -32,17 +34,18 @@ const defaultSettings: NotificationSettings = {
   soundEnabled: true,
 };
 
-// Schedule notifications based on settings
+/**
+ * Schedules notifications based on the provided settings.
+ * @param settings - The notification settings to apply
+ */
 async function scheduleNotifications(settings: NotificationSettings) {
-  await Notifications.cancelAllScheduledNotificationsAsync(); // Clear existing
+  await Notifications.cancelAllScheduledNotificationsAsync(); // Clear existing notifications
 
   if (!settings.enabled) return;
-  console.log({ settings });
+
   const { reminderFrequency, startTime, endTime, soundEnabled } = settings;
   const timeRangeHours = endTime - startTime; // Total hours in the range
-  const intervalSeconds = Math.round((timeRangeHours * 60 * 60) / reminderFrequency); // Convert hours to seconds
-
-  console.log(`Time range: ${timeRangeHours} hours, Interval: ${intervalSeconds} seconds`);
+  const intervalSeconds = Math.round((timeRangeHours * 60 * 60) / reminderFrequency); // Convert to seconds
 
   await Notifications.scheduleNotificationAsync({
     content: {
@@ -56,18 +59,26 @@ async function scheduleNotifications(settings: NotificationSettings) {
       repeats: true,
     } as Notifications.TimeIntervalTriggerInput,
   });
-
-  console.log(`Notification scheduled with interval: ${intervalSeconds} seconds`);
 }
 
+/**
+ * NotificationsProvider manages notification permissions and settings, syncing with Firestore.
+ * @param children - The child components to render within the provider
+ */
 export function NotificationsProvider({ children }: { children: ReactNode }) {
+  // State for notification permissions and settings
   const [notificationPermission, setNotificationPermission] = useState<string | null>(null);
   const [settings, setSettings] = useState<NotificationSettings>(defaultSettings);
   const [error, setError] = useState<string | null>(null);
+
+  // Hook for auth user data
   const { user } = useAuth();
 
-  // Request notification permissions
-  const requestPermission = async () => {
+  /**
+   * Requests notification permissions and updates state.
+   * @returns True if permission is granted, false otherwise
+   */
+  const requestPermission = async (): Promise<boolean> => {
     try {
       const { status } = await Notifications.requestPermissionsAsync({
         ios: {
@@ -77,39 +88,39 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         },
       });
       setNotificationPermission(status);
+
       if (status !== "granted") {
         setError("Notification permissions denied");
         return false;
       }
       return true;
     } catch (err) {
-      setError("Error requesting notification permissions");
-      console.error(err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Error requesting notification permissions";
+      setError(errorMessage);
+      console.error("Permission request error:", err);
       return false;
     }
   };
 
-  // Load settings and initialize notifications on mount
+  // Initialize notifications on mount or user change
   useEffect(() => {
     const initializeNotifications = async () => {
-      // Determine initial settings from Firebase or defaults
-      let initialSettings = defaultSettings;
-      if (user?.settings?.notifications) {
-        initialSettings = {
-          enabled: user.settings.notifications.enabled ?? defaultSettings.enabled,
-          reminderFrequency:
-            user.settings.notifications.reminderFrequency ?? defaultSettings.reminderFrequency,
-          startTime: user.settings.notifications.startTime ?? defaultSettings.startTime,
-          endTime: user.settings.notifications.endTime ?? defaultSettings.endTime,
-          soundEnabled: user.settings.notifications.soundEnabled ?? defaultSettings.soundEnabled,
-        };
-        console.log("Loaded settings from Firebase:", initialSettings);
-      }
+      // Load initial settings from user data or use defaults
+      const initialSettings: NotificationSettings = user?.settings?.notifications
+        ? {
+            enabled: user.settings.notifications.enabled ?? defaultSettings.enabled,
+            reminderFrequency:
+              user.settings.notifications.reminderFrequency ?? defaultSettings.reminderFrequency,
+            startTime: user.settings.notifications.startTime ?? defaultSettings.startTime,
+            endTime: user.settings.notifications.endTime ?? defaultSettings.endTime,
+            soundEnabled: user.settings.notifications.soundEnabled ?? defaultSettings.soundEnabled,
+          }
+        : defaultSettings;
 
-      // Set settings synchronously before proceeding
       setSettings(initialSettings);
 
-      // Request permissions and schedule with the initial settings
+      // Request permissions and schedule notifications if enabled
       const permissionGranted = await requestPermission();
       if (permissionGranted && initialSettings.enabled) {
         await scheduleNotifications(initialSettings);
@@ -117,9 +128,12 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     };
 
     initializeNotifications();
-  }, [user]); // Runs when user changes
+  }, [user]);
 
-  // Persist settings to Firestore and reschedule notifications
+  /**
+   * Updates notification settings, persists to Firestore, and reschedules notifications.
+   * @param newSettings - Partial settings to update
+   */
   const updateSettings = async (newSettings: Partial<NotificationSettings>) => {
     try {
       const updatedSettings = { ...settings, ...newSettings };
@@ -127,15 +141,15 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 
       if (!user?.uid) throw new Error("No user ID available");
 
-      const notificationData = {
-        settings: {
-          notifications: updatedSettings,
+      const docRef = doc(db, "users", user.uid);
+      await setDoc(
+        docRef,
+        {
+          settings: { notifications: updatedSettings },
+          lastUpdated: new Date(),
         },
-        lastUpdated: new Date(),
-      };
-
-      const docRef = doc(db, `users/${user.uid}`);
-      await setDoc(docRef, notificationData, { merge: true });
+        { merge: true }
+      );
 
       if (updatedSettings.enabled && notificationPermission === "granted") {
         await scheduleNotifications(updatedSettings);
@@ -143,12 +157,15 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         await Notifications.cancelAllScheduledNotificationsAsync();
       }
     } catch (err) {
-      setError("Failed to update notification settings");
-      console.error(err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to update notification settings";
+      setError(errorMessage);
+      console.error("Update settings error:", err);
     }
   };
 
-  const value = {
+  // Context value
+  const value: NotificationsState = {
     notificationPermission,
     settings,
     error,
@@ -159,6 +176,11 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   return <NotificationsContext.Provider value={value}>{children}</NotificationsContext.Provider>;
 }
 
+/**
+ * Hook to access the notifications context.
+ * @returns The current notifications context value
+ * @throws Error if used outside NotificationsProvider
+ */
 export function useNotifications() {
   const context = useContext(NotificationsContext);
   if (context === undefined) {

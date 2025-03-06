@@ -1,69 +1,78 @@
 import { useAuth } from "@/components/Auth/AuthProvider";
 import { useLeaderboardStore } from "@/store/leaderboardStore";
-import { FontAwesome, MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import React, { useEffect } from "react";
-import { View, StyleSheet, ScrollView, Text } from "react-native";
-import {
-  Card,
-  Text as PaperText,
-  Button,
-  Avatar,
-  ActivityIndicator,
-  useTheme,
-} from "react-native-paper";
+import { View, StyleSheet, ScrollView } from "react-native";
+import { Card, Text as PaperText, ActivityIndicator, useTheme } from "react-native-paper";
 
+/**
+ * LeaderBoard screen displays a ranking of users based on their streaks,
+ * highlighting the top 3 and the current user's position.
+ */
 const LeaderBoard = () => {
+  // Hooks for leaderboard data, authentication, and theme
   const { leaderboard, userRank, loading, fetchLeaderboard } = useLeaderboardStore();
   const { user } = useAuth();
-  const theme = useTheme();
+  const { colors } = useTheme();
 
+  // Fetch leaderboard data when user changes
   useEffect(() => {
-    fetchLeaderboard(user?.uid!);
-  }, [fetchLeaderboard, user]);
+    if (user?.uid) {
+      fetchLeaderboard(user.uid);
+    }
+  }, [fetchLeaderboard, user?.uid]);
 
+  // Show loading indicator while data is being fetched
   if (loading) {
-    return <ActivityIndicator style={{ margin: "auto" }} />;
+    return <ActivityIndicator style={styles.loading} />;
   }
 
-  // Check if there are any users with streaks or data (excluding the current user if needed)
+  // Check if there's meaningful leaderboard data (excluding empty streaks)
   const hasLeaderboardData =
     leaderboard.length > 1 || // More than just the current user
     (leaderboard.length === 1 && leaderboard[0].streak > 0); // Current user has a streak
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.header}>Leaderboard</Text>
+    <ScrollView contentContainerStyle={styles.container}>
+      {/* Header */}
+      <PaperText
+        variant="headlineMedium"
+        style={styles.header}
+      >
+        Leaderboard
+      </PaperText>
 
       {hasLeaderboardData ? (
         <>
           {/* Top 3 Positions */}
           <View style={styles.leaderboardTop}>
             {[leaderboard[1], leaderboard[0], leaderboard[2]].map((user, index) => {
-              if (!user || !user.name || user.streak === 0) return null; // Skip users with no streaks
+              if (!user || !user.name || user.streak === 0) return null; // Skip invalid or zero-streak users
               return (
                 <Card
                   key={user.id}
                   style={[
                     styles.topPositionsContainer,
                     index === 1
-                      ? { ...styles.middleCard, backgroundColor: theme.colors.primary }
-                      : { ...styles.sideCard, backgroundColor: theme.colors.secondary },
+                      ? { ...styles.middleCard, backgroundColor: colors.primary }
+                      : { ...styles.sideCard, backgroundColor: colors.secondary },
                     index === 0 && { borderTopEndRadius: 0 },
                     index === 2 && { borderTopStartRadius: 0 },
                   ]}
                 >
                   <PaperText
-                    style={styles.name}
                     variant="titleMedium"
+                    style={styles.name}
                   >
                     {user.name || "User"}
                   </PaperText>
-                  <PaperText style={[styles.streak]}>{user.streak} days</PaperText>
+                  <PaperText style={styles.streak}>{user.streak} days</PaperText>
                   {index === 1 && (
                     <MaterialCommunityIcons
                       size={35}
                       name="crown"
                       style={styles.crown}
+                      color="gold"
                     />
                   )}
                 </Card>
@@ -71,67 +80,62 @@ const LeaderBoard = () => {
             })}
           </View>
 
+          {/* User Rank and Remaining Leaderboard */}
           <View style={styles.userSection}>
             {userRank && (
               <Card
-                style={[styles.fullWidthCard, { backgroundColor: theme.colors.secondary }]} // Updated to fullWidthCard
+                style={[styles.fullWidthCard, { backgroundColor: colors.secondary }]}
                 contentStyle={styles.cardContent}
               >
                 <PaperText
-                  style={styles.rank}
                   variant="bodyLarge"
+                  style={styles.rank}
                 >
                   #{userRank.position}
                 </PaperText>
                 <PaperText
-                  style={styles.name}
                   variant="bodyLarge"
+                  style={styles.name}
                 >
-                  {user?.profile.name}
+                  {user?.profile.name || "You"}
                 </PaperText>
                 <PaperText
                   variant="bodyLarge"
                   style={[styles.streak, { marginLeft: "auto" }]}
                 >
-                  {leaderboard.find((u) => u.id === user?.uid)?.streak || 0} days streak
+                  {leaderboard.find((u) => u.id === user?.uid)?.streak || 0} days
                 </PaperText>
               </Card>
             )}
 
-            {leaderboard.slice(3, leaderboard.length).length > 0 && (
+            {leaderboard.slice(3).length > 0 && (
               <View
-                style={[
-                  styles.leaderBoardEntryContainer,
-                  { backgroundColor: theme.colors.background },
-                ]}
+                style={[styles.leaderboardEntryContainer, { backgroundColor: colors.background }]}
               >
-                {leaderboard.slice(3, leaderboard.length).map((user, index) => {
-                  if (!user?.name || user.streak === 0) return null; // Skip users with no streaks
+                {leaderboard.slice(3).map((user, index) => {
+                  if (!user?.name || user.streak === 0) return null; // Skip invalid or zero-streak users
                   return (
                     <View
                       key={user.id}
-                      style={[
-                        styles.leaderBoardEntry,
-                        { borderBottomColor: theme.colors.secondary },
-                      ]}
+                      style={[styles.leaderboardEntry, { borderBottomColor: colors.secondary }]}
                     >
                       <PaperText
-                        style={styles.rank}
                         variant="bodyLarge"
+                        style={styles.rank}
                       >
                         #{index + 4}
                       </PaperText>
                       <PaperText
-                        style={styles.name}
                         variant="bodyLarge"
+                        style={styles.name}
                       >
-                        {user?.name || "User name"}
+                        {user.name || "User"}
                       </PaperText>
                       <PaperText
-                        style={[styles.streak, { marginLeft: "auto" }]}
                         variant="labelLarge"
+                        style={[styles.streak, { marginLeft: "auto" }]}
                       >
-                        {user.streak} days streak
+                        {user.streak} days
                       </PaperText>
                     </View>
                   );
@@ -141,36 +145,42 @@ const LeaderBoard = () => {
           </View>
         </>
       ) : (
+        /* Empty State */
         <View style={styles.emptyState}>
-          <PaperText style={styles.emptyText}>No leaderboard data available yet.</PaperText>
-          <PaperText style={styles.emptySubText}>
+          <PaperText
+            variant="titleLarge"
+            style={styles.emptyText}
+          >
+            No leaderboard data available yet.
+          </PaperText>
+          <PaperText
+            variant="bodyMedium"
+            style={styles.emptySubText}
+          >
             Start building your streak to appear on the leaderboard!
           </PaperText>
           {userRank && (
             <Card
-              style={[
-                styles.fullWidthCard,
-                { backgroundColor: theme.colors.secondary, marginTop: 20 },
-              ]} // Updated to fullWidthCard
+              style={[styles.fullWidthCard, { backgroundColor: colors.secondary, marginTop: 20 }]}
               contentStyle={styles.cardContent}
             >
               <PaperText
-                style={styles.rank}
                 variant="bodyLarge"
+                style={styles.rank}
               >
                 #{userRank.position}
               </PaperText>
               <PaperText
-                style={styles.name}
                 variant="bodyLarge"
+                style={styles.name}
               >
-                {user?.profile.name}
+                {user?.profile.name || "You"}
               </PaperText>
               <PaperText
                 variant="bodyLarge"
                 style={[styles.streak, { marginLeft: "auto" }]}
               >
-                {leaderboard.find((u) => u.id === user?.uid)?.streak || 0} days streak
+                {leaderboard.find((u) => u.id === user?.uid)?.streak || 0} days
               </PaperText>
             </Card>
           )}
@@ -180,13 +190,13 @@ const LeaderBoard = () => {
   );
 };
 
+// Styles for the LeaderBoard component
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     padding: 10,
+    paddingBottom: 20,
   },
   header: {
-    fontSize: 24,
     fontWeight: "bold",
     textAlign: "center",
     marginVertical: 10,
@@ -207,21 +217,6 @@ const styles = StyleSheet.create({
     borderBottomStartRadius: 0,
     maxWidth: 150,
   },
-  userSection: {
-    marginBottom: 10,
-  },
-  fullWidthCard: {
-    // New style for full-width card
-    borderRadius: 10,
-    marginVertical: 5,
-    padding: 10,
-    width: "100%", // Ensure full width
-  },
-  cardContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
   middleCard: {
     height: "100%",
     width: "35%",
@@ -231,6 +226,20 @@ const styles = StyleSheet.create({
   sideCard: {
     height: "80%",
     width: "30%",
+  },
+  userSection: {
+    marginBottom: 10,
+  },
+  fullWidthCard: {
+    borderRadius: 10,
+    marginVertical: 5,
+    padding: 10,
+    width: "100%",
+  },
+  cardContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
   rank: {
     fontWeight: "bold",
@@ -247,17 +256,17 @@ const styles = StyleSheet.create({
     left: "5%",
     transform: [{ translateX: "-5%" }],
   },
-  leaderBoardEntry: {
+  leaderboardEntryContainer: {
+    padding: 10,
+    borderRadius: 10,
+    marginVertical: 10,
+  },
+  leaderboardEntry: {
     flexDirection: "row",
     alignItems: "center",
     borderBottomWidth: 0.5,
     gap: 10,
     padding: 5,
-  },
-  leaderBoardEntryContainer: {
-    padding: 10,
-    borderRadius: 10,
-    marginVertical: 10,
   },
   emptyState: {
     flex: 1,
@@ -266,14 +275,17 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   emptyText: {
-    fontSize: 18,
     fontWeight: "bold",
     textAlign: "center",
     marginBottom: 10,
   },
   emptySubText: {
-    fontSize: 14,
     textAlign: "center",
+  },
+  loading: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 

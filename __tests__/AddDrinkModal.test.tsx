@@ -1,40 +1,46 @@
 import React from "react";
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
-import { AddDrinkModal } from "@/components/AddDrinkModal"; // Adjust import path
 import { Provider as PaperProvider, Text } from "react-native-paper";
-import { useAuth } from "@/components/Auth/AuthProvider"; // Mock this
-import { addWaterIntake } from "@/services/add-water-intake"; // Mock this service
+import { AddDrinkModal } from "@/components/AddDrinkModal";
+import { useAuth } from "@/components/Auth/AuthProvider";
+import { addWaterIntake } from "@/services/add-water-intake";
 import { TouchableOpacity } from "react-native";
 
+// Mocking Expo font utilities to ensure tests run smoothly without font loading issues
 jest.mock("expo-font", () => ({
   loadAsync: jest.fn().mockResolvedValue(true),
   isLoaded: jest.fn().mockReturnValue(true),
 }));
 
+// Mocking vector icons to avoid rendering issues in the test environment
 jest.mock("@expo/vector-icons", () => ({
   MaterialIcons: "MaterialIcons",
   MaterialCommunityIcons: "MaterialCommunityIcons",
 }));
 
-// Mock dependencies
+// Mocking the authentication context to simulate user data
 jest.mock("@/components/Auth/AuthProvider", () => ({
   useAuth: jest.fn(),
 }));
 
+// Mocking the water intake service to control its behavior during tests
 jest.mock("@/services/add-water-intake", () => ({
   addWaterIntake: jest.fn(),
 }));
 
-// Mock component to act as a trigger
+// A reusable mock trigger component to simulate opening the modal
 const MockTrigger = ({ onPress }: { onPress: () => void }) => (
-  <MockButton
+  <TouchableOpacity
     onPress={onPress}
     testID="mock-trigger"
-  />
+  >
+    <Text>Trigger Modal</Text>
+  </TouchableOpacity>
 );
 
+// Test suite for the AddDrinkModal component, ensuring core functionality is verified
 describe("AddDrinkModal Component", () => {
-  // Setup mock user and reset mocks before each test
+  // Reset mocks before each test to maintain isolation and prevent state leakage
   beforeEach(() => {
     jest.clearAllMocks();
     (useAuth as jest.Mock).mockReturnValue({
@@ -42,16 +48,18 @@ describe("AddDrinkModal Component", () => {
     });
   });
 
+  // Enable fake timers globally to handle asynchronous operations efficiently
   beforeAll(() => {
     jest.useFakeTimers();
   });
 
+  // Restore real timers after all tests to avoid interfering with other suites
   afterAll(() => {
     jest.useRealTimers();
   });
 
-  // Test rendering and basic interactions
-  it("renders correctly and opens modal when trigger is pressed", () => {
+  // Verify that the modal renders and opens correctly when triggered
+  it("renders properly and displays when the trigger is activated", () => {
     const { getByTestId, getByText } = render(
       <PaperProvider>
         <AddDrinkModal>
@@ -60,17 +68,14 @@ describe("AddDrinkModal Component", () => {
       </PaperProvider>
     );
 
-    // Press the trigger to open modal
     fireEvent.press(getByTestId("mock-trigger"));
-
-    // Check modal elements are visible
     expect(getByText("Add a Drink")).toBeTruthy();
-    expect(getByText("250ml")).toBeTruthy(); // Default selected amount
+    expect(getByText("250ml")).toBeTruthy(); // Default amount should be visible
   });
 
-  // Test predefined amount selection
-  it("allows selecting predefined drink amounts", () => {
-    const { getByText, getByTestId } = render(
+  // Test the ability to select predefined drink amounts
+  it("supports selection of predefined drink amounts", () => {
+    const { getByTestId, getByText } = render(
       <PaperProvider>
         <AddDrinkModal>
           <MockTrigger onPress={() => {}} />
@@ -78,17 +83,16 @@ describe("AddDrinkModal Component", () => {
       </PaperProvider>
     );
 
-    // Open modal
     fireEvent.press(getByTestId("mock-trigger"));
-
-    // Select 300ml option
     fireEvent.press(getByText("300ml"));
 
+    // Verify the selected amount updates to 300ml
+    expect(getByTestId("selected-amount")).toHaveTextContent("300ml");
   });
 
-  // Test custom amount input
-  it("allows entering a custom drink amount", () => {
-    const { getByTestId, getByText } = render(
+  // Ensure custom drink amount input functions as expected
+  it("accepts custom drink amount input", () => {
+    const { getByTestId } = render(
       <PaperProvider>
         <AddDrinkModal>
           <MockTrigger onPress={() => {}} />
@@ -96,20 +100,14 @@ describe("AddDrinkModal Component", () => {
       </PaperProvider>
     );
 
-    // Open modal
     fireEvent.press(getByTestId("mock-trigger"));
-
-    // Find and input custom amount
     const customInput = getByTestId("custom-amount-input");
     fireEvent.changeText(customInput, "500");
-
-    // Verify input
     expect(customInput.props.value).toBe("500");
   });
 
-  // Test successful drink addition
-  it("adds drink successfully with predefined amount", async () => {
-    // Mock successful addWaterIntake
+  // Confirm successful addition of a drink with a predefined amount
+  it("successfully adds a drink with a predefined amount and invokes onComplete", async () => {
     (addWaterIntake as jest.Mock).mockResolvedValue({});
     const mockOnComplete = jest.fn();
 
@@ -121,14 +119,9 @@ describe("AddDrinkModal Component", () => {
       </PaperProvider>
     );
 
-    // Open modal
     fireEvent.press(getByTestId("mock-trigger"));
+    fireEvent.press(getByText("Confirm"));
 
-    // Press confirm button
-    const confirmButton = getByText("Confirm");
-    fireEvent.press(confirmButton);
-
-    // Wait for and verify successful addition
     await waitFor(() => {
       expect(addWaterIntake).toHaveBeenCalledWith({
         user: { id: "test-user-id" },
@@ -138,10 +131,8 @@ describe("AddDrinkModal Component", () => {
     });
   });
 
-  // Test error handling for invalid input
-  it("handles error when adding invalid drink amount", async () => {
-    const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
-
+  // Validate error handling for invalid drink amounts
+  it("displays an error message for an invalid drink amount", async () => {
     const { getByTestId, getByText } = render(
       <PaperProvider>
         <AddDrinkModal>
@@ -150,35 +141,16 @@ describe("AddDrinkModal Component", () => {
       </PaperProvider>
     );
 
-    // Open modal
     fireEvent.press(getByTestId("mock-trigger"));
-
-    // Input invalid custom amount
     const customInput = getByTestId("custom-amount-input");
     fireEvent.changeText(customInput, "-100");
+    fireEvent.press(getByText("Confirm"));
 
-    // Press confirm button
-    const confirmButton = getByText("Confirm");
-    fireEvent.press(confirmButton);
-
-    // Wait for and verify error handling
     await waitFor(() => {
       expect(getByTestId("error-text")).toBeTruthy();
       expect(getByTestId("error-text").props.children).toBe(
         "Please enter a valid amount greater than 0"
       );
     });
-
-    consoleErrorSpy.mockRestore();
   });
 });
-
-// Mock Button component for testing trigger
-const MockButton = ({ onPress, testID }: { onPress: () => void; testID?: string }) => (
-  <TouchableOpacity
-    onPress={onPress}
-    testID={testID}
-  >
-    <Text>Mock Trigger</Text>
-  </TouchableOpacity>
-);

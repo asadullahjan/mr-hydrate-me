@@ -4,19 +4,31 @@ import Svg, { Path } from "react-native-svg";
 import * as d3 from "d3-shape";
 import { useTheme, Text } from "react-native-paper";
 
-export const ArcProgress = ({
+// Define props interface
+interface ArcProgressProps {
+  progress: number; // Progress percentage (0-100)
+  size?: number; // Total size of the SVG (default: 400)
+  strokeWidth?: number; // Width of the arc stroke (default: 40)
+}
+
+/**
+ * ArcProgress displays an animated circular progress arc with a percentage label.
+ * @param progress - The progress percentage (0-100)
+ * @param size - The total size of the SVG (default: 400)
+ * @param strokeWidth - The width of the arc stroke (default: 40)
+ */
+export const ArcProgress: React.FC<ArcProgressProps> = ({
   progress,
   size = 400,
   strokeWidth = 40,
-}: {
-  progress: number;
-  size?: number;
-  strokeWidth?: number;
 }) => {
+  // Constants for arc geometry
   const radius = (size - strokeWidth) / 2;
   const centerX = size / 2;
   const centerY = size / 2;
   const roundness = 15;
+
+  // Hooks for theme and animation
   const theme = useTheme();
   const animation = useRef(new Animated.Value(0)).current;
   const [animatedProgress, setAnimatedProgress] = useState(0);
@@ -30,7 +42,7 @@ export const ArcProgress = ({
     Animated.timing(animation, {
       toValue: progress,
       duration: 1000,
-      useNativeDriver: false,
+      useNativeDriver: true,
     }).start();
 
     return () => {

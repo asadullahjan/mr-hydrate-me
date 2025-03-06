@@ -2,99 +2,133 @@ import { db } from "@/firebaseConfig";
 import { DailyRecord } from "@/store/userHistoryStore";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import moment from "moment";
-import { Alert } from "react-native";
 import * as Location from "expo-location";
 
-type Weather = { humidity: number, temperature: number }
-
-export async function checkAndUpdateDailyWaterGoal(userId: string, location: Location.LocationObjectCoords | null): Promise<DailyRecord> {
-  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-  const dateKey = moment(today).format('YYYY-MM-DD');
-
-  // Check if today's record exists
-  const todayRecordRef = doc(db, `users/${userId}/dailyRecords/${today}`);
-  let todayRecord = await getDoc(todayRecordRef);
-
-  if (!todayRecord.exists()) {
-    // Get user data
-    const userRef = doc(db, `users/${userId}`);
-    const user = await getDoc(userRef);
-    const userData = user.data()
-    const userProfile = userData?.profile
-    const baseGoal = userProfile?.dailyGoal;
-
-    // Get weather data for user's location (from a weather API)
-    const weatherData = await fetchWeatherData(location ? { latitude: location.latitude, longitude: location.longitude } : userData?.settings?.location);
-    const weatherAdjustment = calculateWeatherAdjustment(weatherData);
-
-    // Create today's record
-    await setDoc(todayRecordRef, {
-      date: moment(dateKey).startOf('day').toDate(),
-      baseGoal: baseGoal,
-      weatherAdjustment: weatherAdjustment,
-      totalAmount: baseGoal + weatherAdjustment,
-      completedAmount: 0,
-      percentage: 0,
-      lastUpdated: serverTimestamp()
-    });
-    todayRecord = await getDoc(todayRecordRef);
-  }
-
-  console.log({ todayRecord })
-  return todayRecord.data() as DailyRecord;
+// Define weather data interface
+interface Weather {
+  humidity: number;
+  temperature: number;
 }
 
+/**
+ * Checks and updates the user's daily water goal based on weather conditions if no record exists for today.
+ * @param userId - The ID of the user
+ * @param location - The user's current location coordinates (optional)
+ * @returns The DailyRecord for today
+ * @throws Error if Firestore operations fail
+ */
+export async function checkAndUpdateDailyWaterGoal(
+  userId: string,
+  location: Location.LocationObjectCoords | null
+): Promise<DailyRecord> {
+  const today = moment().format("YYYY-MM-DD");
+  const dayRef = doc(db, `users/${userId}/dailyRecords/${today}`);
 
-async function fetchWeatherData({ latitude, longitude }: { latitude: number, longitude: number }): Promise<Weather> {
+  // Check if today's record exists
+  const daySnap = await getDoc(dayRef);
+  if (daySnap.exists()) {
+    return daySnap.data() as DailyRecord;
+  }
+
+  // Fetch user data if no record exists
+  const userRef = doc(db, `users/${userId}`);
+  const userSnap = await getDoc(userRef);
+  if (!userSnap.exists()) {
+    throw new Error("User data not found");
+  }
+
+  const userData = userSnap.data();
+  const baseGoal = userData?.profile?.dailyGoal ?? 2000; // Default to 2000ml if not set
+
+  // Get weather data and calculate adjustment
+  const weatherData = await fetchWeatherData(
+    location ?? userData?.settings?.location ?? { latitude: 0, longitude: 0 }
+  );
+  const weatherAdjustment = calculateWeatherAdjustment(weatherData);
+
+  // Create today's record
+  const newRecord = {
+    date: moment(today).startOf("day").toDate(),
+    baseGoal,
+    weatherAdjustment,
+    totalAmount: baseGoal + weatherAdjustment,
+    completedAmount: 0,
+    percentage: 0,
+    lastUpdated: serverTimestamp(),
+  };
+
+  await setDoc(dayRef, newRecord);
+  const updatedSnap = await getDoc(dayRef);
+
+  return updatedSnap.data() as DailyRecord;
+}
+
+/**
+ * Fetches real-time weather data for a given location using the Tomorrow.io API.
+ * @param location - The latitude and longitude coordinates
+ * @returns Weather data with humidity and temperature
+ */
+async function fetchWeatherData({
+  latitude,
+  longitude,
+}: {
+  latitude: number;
+  longitude: number;
+}): Promise<Weather> {
   try {
-    const url = `https://api.tomorrow.io/v4/weather/realtime?location=${latitude},${longitude}&apikey=${process.env.EXPO_PUBLIC_TOMORROW_IO_API_KEY}`;
+    const apiKey = process.env.EXPO_PUBLIC_TOMORROW_IO_API_KEY;
+    if (!apiKey) {
+      throw new Error("Weather API key is missing");
+    }
+
+    const url = `https://api.tomorrow.io/v4/weather/realtime?location=${latitude},${longitude}&apikey=${apiKey}`;
     const options = {
-      method: 'GET',
-      headers: { accept: 'application/json', 'accept-encoding': 'deflate, gzip, br' }
+      method: "GET",
+      headers: {
+        accept: "application/json",
+        "accept-encoding": "deflate, gzip, br",
+      },
     };
 
-    const fetchedData = await fetch(url, options)
-    const { data } = await fetchedData.json()
+    const response = await fetch(url, options);
+    const { data } = await response.json();
 
     return {
       humidity: data.values.humidity,
       temperature: data.values.temperature,
-    }
+    };
   } catch (err) {
-    console.error(err)
-    return {
-      humidity: 0,
-      temperature: 0
-    }
+    console.error("Failed to fetch weather data:", err);
+    return { humidity: 0, temperature: 0 }; // Fallback values
   }
 }
 
+/**
+ * Calculates a water goal adjustment based on weather conditions.
+ * @param weather - The weather data with humidity and temperature
+ * @returns The adjustment amount in ml, capped between -500 and 1500
+ */
 function calculateWeatherAdjustment(weather: Weather): number {
   let adjustment = 0;
 
-  // Temperature adjustment using a sliding scale (more precise than threshold-based)
+  // Temperature adjustment (sliding scale)
   if (weather.temperature > 20) {
-    // Progressive increase: 50ml per degree above 20°C
-    adjustment += (weather.temperature - 20) * 50;
+    adjustment += (weather.temperature - 20) * 50; // +50ml per °C above 20°C
   } else if (weather.temperature < 10) {
-    // Slight decrease for cold weather (people tend to drink less)
-    adjustment -= (10 - weather.temperature) * 20;
+    adjustment -= (10 - weather.temperature) * 20; // -20ml per °C below 10°C
   }
 
-  // Humidity adjustment - more granular approach
-  // Higher humidity reduces body's cooling efficiency through sweat
+  // Humidity adjustment
   if (weather.humidity > 50) {
-    // 4ml per percentage point above 50% humidity
-    adjustment += (weather.humidity - 50) * 4;
+    adjustment += (weather.humidity - 50) * 4; // +4ml per % above 50%
   }
 
-  // Consider heat index (feels-like temperature) for extreme conditions
+  // Heat index adjustment for extreme conditions
   if (weather.temperature > 28 && weather.humidity > 60) {
-    // Additional adjustment for combined heat and humidity
     const heatStressFactor = (weather.temperature - 28) * (weather.humidity - 60) / 100;
     adjustment += heatStressFactor * 10;
   }
 
-  // Cap the total adjustment to reasonable limits
+  // Cap adjustment between -500ml and 1500ml
   return Math.min(1500, Math.max(-500, Math.round(adjustment)));
 }

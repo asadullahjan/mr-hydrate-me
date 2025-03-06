@@ -4,19 +4,28 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import React, { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { View, StyleSheet } from "react-native";
-import { TextInput, Button, Text, Checkbox, HelperText } from "react-native-paper";
+import { TextInput, Button, Text, HelperText } from "react-native-paper";
 import getErrorMessage from "../../utils/getErrorMessage";
 
+// Define the shape of the form data
 interface FormData {
   email: string;
   password: string;
-  rememberMe: boolean;
 }
 
+/**
+ * SignInForm component handles user authentication with email and password.
+ * It uses react-hook-form for form management and Firebase for authentication.
+ */
 const SignInForm = () => {
+  // State to toggle password visibility
   const [showPassword, setShowPassword] = useState(false);
+  // State to store authentication error messages
   const [error, setError] = useState<string | null>(null);
+  // State to indicate loading status during sign-in
   const [isLoading, setIsLoading] = useState(false);
+
+  // Form setup with react-hook-form
   const {
     control,
     handleSubmit,
@@ -26,14 +35,20 @@ const SignInForm = () => {
       email: "",
       password: "",
     },
-    mode: "onChange",
+    mode: "onChange", // Validate on each change
   });
 
-  const onSubmit = async ({ email, password }: any) => {
+  /**
+   * Handles form submission by attempting to sign in with Firebase.
+   * @param data - Form data containing email and password
+   */
+  const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     setError(null);
+
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await signInWithEmailAndPassword(auth, data.email, data.password);
+      // Successful sign-in redirects handled by Firebase auth state listener elsewhere
     } catch (error: any) {
       setError(getErrorMessage(error.code));
     } finally {
@@ -42,80 +57,81 @@ const SignInForm = () => {
   };
 
   return (
-    <>
-      <View>
-        <Controller
-          control={control}
-          name="email"
-          rules={{
-            required: "Email is required",
-            pattern: {
-              value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-              message: "Invalid email address",
-            },
-          }}
-          render={({ field: { onChange, onBlur, value } }) => (
-            <>
-              <TextInput
-                testID="Email"
-                label="Email"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                mode="outlined"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                error={!!errors.email}
-                style={styles.input}
-              />
-              <HelperText
-                type="error"
-                visible={!!errors.email}
-              >
-                {errors.email?.message}
-              </HelperText>
-            </>
-          )}
-        />
+    <View>
+      {/* Email Input */}
+      <Controller
+        control={control}
+        name="email"
+        rules={{
+          required: "Email is required",
+          pattern: {
+            value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+            message: "Invalid email address",
+          },
+        }}
+        render={({ field: { onChange, onBlur, value } }) => (
+          <>
+            <TextInput
+              testID="Email"
+              label="Email"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              mode="outlined"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              error={!!errors.email}
+              style={styles.input}
+            />
+            <HelperText
+              type="error"
+              visible={!!errors.email}
+            >
+              {errors.email?.message}
+            </HelperText>
+          </>
+        )}
+      />
 
-        <Controller
-          control={control}
-          name="password"
-          rules={{
-            required: "Password is required",
-          }}
-          render={({ field: { onChange, onBlur, value } }) => (
-            <>
-              <TextInput
-                testID="Password"
-                label="Password"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                mode="outlined"
-                secureTextEntry={!showPassword}
-                error={!!errors.password}
-                autoCapitalize="none"
-                style={styles.input}
-                right={
-                  <TextInput.Icon
-                    icon={showPassword ? "eye-off" : "eye"}
-                    onPress={() => setShowPassword(!showPassword)}
-                    size={20}
-                  />
-                }
-              />
-              <HelperText
-                type="error"
-                visible={!!errors.password}
-              >
-                {errors.password?.message}
-              </HelperText>
-            </>
-          )}
-        />
-      </View>
+      {/* Password Input */}
+      <Controller
+        control={control}
+        name="password"
+        rules={{
+          required: "Password is required",
+        }}
+        render={({ field: { onChange, onBlur, value } }) => (
+          <>
+            <TextInput
+              testID="Password"
+              label="Password"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              mode="outlined"
+              secureTextEntry={!showPassword}
+              error={!!errors.password}
+              autoCapitalize="none"
+              style={styles.input}
+              right={
+                <TextInput.Icon
+                  icon={showPassword ? "eye-off" : "eye"}
+                  onPress={() => setShowPassword(!showPassword)}
+                  size={20}
+                />
+              }
+            />
+            <HelperText
+              type="error"
+              visible={!!errors.password}
+            >
+              {errors.password?.message}
+            </HelperText>
+          </>
+        )}
+      />
 
+      {/* Display error message if authentication fails */}
       {error && (
         <HelperText
           type="error"
@@ -125,15 +141,18 @@ const SignInForm = () => {
         </HelperText>
       )}
 
+      {/* Submit Button */}
       <Button
         mode="contained"
         onPress={handleSubmit(onSubmit)}
         loading={isLoading}
         disabled={isLoading}
+        style={styles.button}
       >
         {isLoading ? "Signing in..." : "Sign In"}
       </Button>
 
+      {/* Footer with navigation to signup */}
       <View style={styles.footer}>
         <Text variant="bodyMedium">Don't have an account yet? </Text>
         <Button
@@ -145,33 +164,30 @@ const SignInForm = () => {
         </Button>
       </View>
 
+      {/* Forgot Password Link */}
       <Button
-        onPress={() => router.replace("/(auth)/restPassword")}
         mode="text"
         compact
+        onPress={() => router.replace("/(auth)/restPassword")}
       >
         Forgot password?
       </Button>
-    </>
+    </View>
   );
 };
 
+// Styles for the component
 const styles = StyleSheet.create({
-  title: {
-    textAlign: "center",
-    marginBottom: 16,
-  },
   footer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
   },
-  hint: {
-    textAlign: "center",
-    opacity: 0.7,
-  },
   input: {
     backgroundColor: "white",
+  },
+  button: {
+    marginVertical: 10,
   },
 });
 

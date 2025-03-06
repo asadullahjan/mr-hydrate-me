@@ -1,5 +1,5 @@
 import { View, StyleSheet } from "react-native";
-import { Text, TextInput, Button, HelperText } from "react-native-paper";
+import { Text, TextInput, Button, HelperText, useTheme } from "react-native-paper";
 import { useState } from "react";
 import { useAuth } from "@/components/Auth/AuthProvider";
 import {
@@ -10,15 +10,25 @@ import {
 } from "firebase/auth";
 import getErrorMessage from "@/utils/getErrorMessage";
 
+/**
+ * ChangePassword screen allows users to update their account password.
+ */
 const ChangePassword = () => {
+  // Hooks for auth and theme
   const { user } = useAuth();
+  const { colors } = useTheme();
   const auth = getAuth();
+
+  // State for form inputs, feedback, and loading
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  /**
+   * Handles password change by re-authenticating and updating the password.
+   */
   const handleChangePassword = async () => {
     setError("");
     setSuccess("");
@@ -30,17 +40,17 @@ const ChangePassword = () => {
         throw new Error("No authenticated user found.");
       }
 
-      // Step 1: Re-authenticate using the current password
+      // Re-authenticate with current password
       const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
       await reauthenticateWithCredential(currentUser, credential);
 
-      // Step 2: Update the password
+      // Update to new password
       await updatePassword(currentUser, newPassword);
       setSuccess("Password updated successfully!");
       setCurrentPassword("");
       setNewPassword("");
     } catch (err: any) {
-      setError(getErrorMessage(err));
+      setError(getErrorMessage(err.code || err.message));
     } finally {
       setIsLoading(false);
     }
@@ -48,9 +58,10 @@ const ChangePassword = () => {
 
   return (
     <View style={styles.container}>
+      {/* Title */}
       <Text
         variant="headlineMedium"
-        style={styles.title}
+        style={[styles.title, { color: colors.primary }]}
       >
         Change Password
       </Text>
@@ -63,6 +74,9 @@ const ChangePassword = () => {
         mode="outlined"
         secureTextEntry
         style={styles.input}
+        error={!!error}
+        outlineColor={colors.primary}
+        activeOutlineColor={colors.primary}
       />
 
       {/* New Password Field */}
@@ -73,27 +87,30 @@ const ChangePassword = () => {
         mode="outlined"
         secureTextEntry
         style={styles.input}
+        error={!!error}
+        outlineColor={colors.primary}
+        activeOutlineColor={colors.primary}
       />
 
       {/* Error Message */}
-      {error ? (
+      {error && (
         <HelperText
           type="error"
-          visible
+          visible={!!error}
         >
           {error}
         </HelperText>
-      ) : null}
+      )}
 
       {/* Success Message */}
-      {success ? (
+      {success && (
         <Text
           variant="bodyMedium"
-          style={styles.successText}
+          style={[styles.successText]}
         >
           {success}
         </Text>
-      ) : null}
+      )}
 
       {/* Change Password Button */}
       <Button
@@ -102,6 +119,7 @@ const ChangePassword = () => {
         loading={isLoading}
         disabled={!currentPassword || !newPassword || isLoading}
         style={styles.button}
+        labelStyle={{ color: colors.onPrimary }}
       >
         Update Password
       </Button>
@@ -109,32 +127,30 @@ const ChangePassword = () => {
   );
 };
 
-export default ChangePassword;
-
+// Styles for the ChangePassword component
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
     justifyContent: "center",
-    backgroundColor: "#f9f9f9",
   },
   title: {
     fontWeight: "bold",
-    fontSize: 24,
     marginBottom: 20,
     textAlign: "center",
-    color: "#333",
   },
   input: {
     marginBottom: 15,
+    backgroundColor: "white",
   },
   button: {
     marginTop: 20,
     paddingVertical: 10,
   },
   successText: {
-    color: "#4CAF50",
     marginTop: 10,
     textAlign: "center",
   },
 });
+
+export default ChangePassword;

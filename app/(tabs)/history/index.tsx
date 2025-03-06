@@ -11,19 +11,19 @@ import ProgressSection from "@/components/History/ProgressSection";
 import { DateData, MarkedDates } from "react-native-calendars/src/types";
 
 /**
- * History screen component that displays a calendar, progress, entries, and a chart
- * for a user's water intake history, with a subtle inline loading indicator.
+ * History screen displays a user's water intake history with a calendar,
+ * progress details, daily entries, and a monthly chart. Includes subtle loading feedback.
  */
 const History = () => {
   // Theme and authentication hooks
-  const { colors } = useTheme(); // Access theme colors for consistent styling
-  const { user } = useAuth(); // Get the authenticated user
-  const { history, loading, fetchHistory } = useUserHistoryStore(); // Fetch history data from Zustand store
+  const { colors } = useTheme(); // Access theme colors for styling
+  const { user } = useAuth(); // Get authenticated user
+  const { history, loading, fetchHistory } = useUserHistoryStore(); // Manage history data via Zustand store
 
-  // State for managing selected month and date
-  const [selectedMonth, setSelectedMonth] = useState(moment().format("MMMM YYYY")); // Current month in "MMMM YYYY" format
-  const [selectedDate, setSelectedDate] = useState(moment().format("YYYY-MM-DD")); // Current date in "YYYY-MM-DD" format
-  const [selectedDateData, setSelectedDateData] = useState<DailyRecord | null>(null); // Data for the selected date
+  // State for selected month and date
+  const [selectedMonth, setSelectedMonth] = useState(moment().format("MMMM YYYY")); // e.g., "March 2025"
+  const [selectedDate, setSelectedDate] = useState(moment().format("YYYY-MM-DD")); // e.g., "2025-03-06"
+  const [selectedDateData, setSelectedDateData] = useState<DailyRecord | null>(null); // Data for selected date
 
   // Memoized month range for fetching history data
   const monthRange = useMemo(() => {
@@ -32,26 +32,26 @@ const History = () => {
     return { start, end };
   }, [selectedMonth]);
 
-  // Fetch history data when month changes or user is available
+  // Fetch history data when user or month changes
   useEffect(() => {
     if (user?.uid) {
       fetchHistory(user.uid, monthRange.start, monthRange.end);
     }
   }, [fetchHistory, user?.uid, monthRange.start, monthRange.end]);
 
-  // Update selected date data when date or history changes
+  // Update selected date's data when date or history changes
   useEffect(() => {
     const data = history[moment(selectedDate).format("YYYY-MM-DD")];
     setSelectedDateData(data || null);
   }, [selectedDate, history]);
 
-  // Memoized calendar markings for performance
+  // Memoized calendar markings to optimize performance
   const markedDates = useMemo(() => {
     const markings: MarkedDates = Object.entries(history).reduce(
       (acc, [date, record]) => ({
         ...acc,
         [date]: {
-          marked: record.percentage >= 100, // Mark days with 100% completion
+          marked: record.percentage >= 100, // Mark days with 100%+ completion
           dotColor: "#4CAF50", // Green dot for completed days
         },
       }),
@@ -62,16 +62,17 @@ const History = () => {
       selected: true,
       disableTouchEvent: true,
       selectedColor: colors.primary,
+      ...(markings[selectedDate] || {}), // Merge with existing markings if any
     };
     return markings;
   }, [history, selectedDate, colors.primary]);
 
-  // Callback for handling day press on calendar
+  // Handle day selection on calendar
   const handleDayPress = useCallback((day: DateData) => {
     setSelectedDate(day.dateString);
   }, []);
 
-  // Callback for handling month change on calendar
+  // Handle month change on calendar
   const handleMonthChange = useCallback((month: DateData) => {
     setSelectedMonth(moment(month.dateString).format("MMMM YYYY"));
   }, []);
@@ -96,7 +97,7 @@ const History = () => {
           variant="labelLarge"
           style={styles.date}
         >
-          {selectedDate}
+          {moment(selectedDate).format("MMMM D, YYYY")} {/* e.g., "March 6, 2025" */}
         </Text>
         {loading && (
           <View style={styles.loadingContainer}>
@@ -110,15 +111,15 @@ const History = () => {
         )}
       </View>
 
-      {/* Progress section showing water intake completion */}
+      {/* Progress section for water intake completion */}
       <ProgressSection selectedDateData={selectedDateData} />
 
-      {/* Entries section showing detailed intake logs */}
+      {/* Entries section for detailed intake logs */}
       <EntriesSection selectedDateData={selectedDateData} />
 
-      {/* Chart visualizing monthly water intake */}
+      {/* Monthly water intake chart */}
       <WaterIntakeChart
-        userId={user?.uid!} // Non-null assertion since user is checked earlier
+        userId={user?.uid ?? ""} // Fallback to empty string if user is null
         data={history}
         loading={loading}
         viewMode="month"
@@ -130,7 +131,7 @@ const History = () => {
 // Styles for the History component
 const styles = StyleSheet.create({
   container: {
-    flexGrow: 1, // Allows ScrollView to expand fully
+    flexGrow: 1, // Ensures ScrollView content expands fully
     padding: 10,
     paddingVertical: 40,
   },
@@ -143,18 +144,18 @@ const styles = StyleSheet.create({
   dateRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between", // Spreads date and indicator across the row
+    justifyContent: "space-between",
     marginBottom: 5,
   },
   date: {
-    flexShrink: 1, // Prevents date text from pushing the indicator off-screen
+    flexShrink: 1, // Prevents text overflow
   },
   loadingContainer: {
     flexDirection: "row",
     gap: 2,
   },
   loadingIndicator: {
-    marginLeft: 8, // Small gap between date and spinner
+    marginLeft: 8, // Space between date and spinner
   },
 });
 

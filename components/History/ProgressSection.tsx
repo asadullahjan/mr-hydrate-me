@@ -1,53 +1,56 @@
-import React, { useEffect, useRef, useMemo, useCallback, useState } from "react";
+import React, { useEffect, useRef, useMemo, useCallback } from "react";
 import { View, Animated, StyleSheet } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 import { DailyRecord } from "@/store/userHistoryStore";
 import CountAnimation from "../AnimatedCounter";
 
+// Define props interface
 interface ProgressSectionProps {
   selectedDateData: DailyRecord | null;
 }
 
+/**
+ * ProgressSection displays an animated progress bar and water intake details for a selected date.
+ * @param selectedDateData - The daily record containing progress data
+ */
 const ProgressSection: React.FC<ProgressSectionProps> = ({ selectedDateData }) => {
-  const theme = useTheme();
-  const [percentage, setPercentage] = useState(selectedDateData?.percentage || 0);
+  // Hooks for theme
+  const { colors } = useTheme();
 
-  // Animation refs
+  // Animation ref for progress bar
   const progressAnim = useRef(new Animated.Value(0)).current;
 
-  const completedAmount = useMemo(() => {
-    if (!selectedDateData) return 0;
-    return Math.round((selectedDateData.percentage / 100) * (selectedDateData.totalAmount || 0));
-  }, [selectedDateData]);
+  // Memoized calculations
+  const percentage = useMemo(() => selectedDateData?.percentage || 0, [selectedDateData]);
+  const completedAmount = useMemo(
+    () =>
+      selectedDateData ? Math.round((percentage / 100) * (selectedDateData.totalAmount || 0)) : 0,
+    [selectedDateData, percentage]
+  );
 
-  // Animation handlers
+  /**
+   * Animates the progress bar to the given percentage.
+   * @param toValue - The target percentage value
+   */
   const animateProgress = useCallback(
-    (percentage: number) => {
+    (toValue: number) => {
       Animated.timing(progressAnim, {
-        toValue: percentage,
+        toValue,
         duration: 1000,
-        useNativeDriver: false,
+        useNativeDriver: false, // Width animation requires non-native driver
       }).start();
-
-      return () => {
-        progressAnim.stopAnimation();
-      };
     },
     [progressAnim]
   );
 
-  // Progress animation
+  // Trigger animation when selectedDateData changes
   useEffect(() => {
-    let cleanup;
-    if (selectedDateData) {
-      setPercentage(selectedDateData.percentage || 0);
-      cleanup = animateProgress(selectedDateData?.percentage || 0);
-    }
-    return cleanup;
-  }, [selectedDateData]);
+    animateProgress(percentage);
+  }, [percentage, animateProgress]);
 
   return (
-    <View style={[styles.progressRowContainer, { borderColor: theme.colors.background }]}>
+    <View style={[styles.progressRowContainer, { borderColor: colors.background }]}>
+      {/* Animated Progress Bar Background */}
       <Animated.View
         style={[
           styles.fillBackground,
@@ -56,16 +59,18 @@ const ProgressSection: React.FC<ProgressSectionProps> = ({ selectedDateData }) =
               inputRange: [0, 100],
               outputRange: ["0%", "100%"],
             }),
-            backgroundColor: theme.colors.secondary,
+            backgroundColor: colors.secondary,
           },
         ]}
       />
+
+      {/* Progress Details */}
       <View style={styles.progressRow}>
         <Text
           variant="bodyLarge"
           style={styles.percentage}
         >
-          <CountAnimation to={percentage || 0} />%
+          <CountAnimation to={percentage} />%
         </Text>
         <View style={styles.amountContainer}>
           <Text
@@ -78,7 +83,7 @@ const ProgressSection: React.FC<ProgressSectionProps> = ({ selectedDateData }) =
             variant="bodyLarge"
             style={styles.goal}
           >
-            / {selectedDateData?.totalAmount} ml
+            / {selectedDateData?.totalAmount || 0} ml
           </Text>
         </View>
       </View>
@@ -86,10 +91,8 @@ const ProgressSection: React.FC<ProgressSectionProps> = ({ selectedDateData }) =
   );
 };
 
+// Styles for the ProgressSection component
 const styles = StyleSheet.create({
-  date: {
-    marginBottom: 5,
-  },
   progressRowContainer: {
     flex: 1,
     maxHeight: 60,

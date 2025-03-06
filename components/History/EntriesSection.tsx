@@ -1,53 +1,64 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { View, Animated, StyleSheet, FlatList, Easing } from "react-native";
+import React, { useCallback, useMemo, useRef } from "react";
+import { View, Animated, StyleSheet } from "react-native";
 import { Text, TouchableRipple, useTheme } from "react-native-paper";
 import { FontAwesome } from "@expo/vector-icons";
 import moment from "moment";
 import { DailyRecord } from "@/store/userHistoryStore";
 
+// Define props interface
 interface EntriesSectionProps {
   selectedDateData: DailyRecord | null;
 }
 
-// Constants for better maintainability
+// Constants for animation and layout
 const ANIMATION_DURATION = 400;
 const ENTRY_HEIGHT = 60;
 
-export const EntriesSection: React.FC<EntriesSectionProps> = ({ selectedDateData }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+/**
+ * EntriesSection displays a collapsible list of water intake entries for a selected date.
+ * @param selectedDateData - The daily record containing water intake entries
+ */
+const EntriesSection: React.FC<EntriesSectionProps> = ({ selectedDateData }) => {
+  // State and refs for animation
+  const [isExpanded, setIsExpanded] = React.useState(false);
   const expandAnim = useRef(new Animated.Value(0)).current;
   const expandRotateAnim = useRef(new Animated.Value(0)).current;
-  const theme = useTheme();
 
+  // Theme hook
+  const { colors } = useTheme();
+
+  // Calculate max height based on entries
   const maxHeight = useMemo(
     () => (selectedDateData?.entries?.length ? selectedDateData.entries.length * ENTRY_HEIGHT : 0),
     [selectedDateData]
   );
 
+  /**
+   * Toggles the expansion state with parallel animations for height and rotation.
+   */
   const toggleExpand = useCallback(() => {
     const newValue = !isExpanded;
     setIsExpanded(newValue);
 
     Animated.parallel([
       Animated.timing(expandAnim, {
-        toValue: isExpanded ? 0 : 1,
+        toValue: newValue ? 1 : 0,
         duration: ANIMATION_DURATION,
-        useNativeDriver: false,
-        easing: Easing.out(Easing.ease),
+        useNativeDriver: false, // Height animation requires non-native driver
       }),
       Animated.timing(expandRotateAnim, {
-        toValue: isExpanded ? 0 : 1,
+        toValue: newValue ? 1 : 0,
         duration: ANIMATION_DURATION,
-        useNativeDriver: true,
-        easing: Easing.out(Easing.ease),
+        useNativeDriver: true, // Rotation can use native driver
       }),
     ]).start();
-  }, [isExpanded]);
+  }, [isExpanded, expandAnim, expandRotateAnim]);
 
   return (
-    <View style={[styles.detailsContainer, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.detailsContainer, { backgroundColor: colors.background }]}>
       {selectedDateData?.entries?.length ? (
         <>
+          {/* Expand/Collapse Button */}
           <TouchableRipple
             onPress={toggleExpand}
             style={styles.expandButton}
@@ -79,6 +90,7 @@ export const EntriesSection: React.FC<EntriesSectionProps> = ({ selectedDateData
             </View>
           </TouchableRipple>
 
+          {/* Animated Entries List */}
           <Animated.View
             style={[
               styles.entriesContainer,
@@ -117,13 +129,14 @@ export const EntriesSection: React.FC<EntriesSectionProps> = ({ selectedDateData
           variant="labelLarge"
           style={styles.noDataText}
         >
-          No Water entries found
+          No water entries found
         </Text>
       )}
     </View>
   );
 };
 
+// Styles for the EntriesSection component
 const styles = StyleSheet.create({
   detailsContainer: {
     marginBottom: 10,

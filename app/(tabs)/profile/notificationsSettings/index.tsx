@@ -1,22 +1,14 @@
 import React, { useState } from "react";
 import { View, ScrollView, StyleSheet } from "react-native";
-import {
-  Text,
-  TextInput,
-  Button,
-  Checkbox,
-  HelperText,
-  useTheme,
-  Divider,
-  Switch,
-} from "react-native-paper";
+import { Text, TextInput, Button, Switch, HelperText, useTheme, Divider } from "react-native-paper";
 import { useRouter } from "expo-router";
 import {
   NotificationSettings,
   useNotifications,
-} from "@/components/Notifications/NotificationsProvider"; // Adjust path
+} from "@/components/Notifications/NotificationsProvider";
 import { MaterialIcons } from "@expo/vector-icons";
 
+// List of notification settings
 const notificationSettings = [
   {
     field: "enabled",
@@ -25,7 +17,7 @@ const notificationSettings = [
     icon: "notifications",
     type: "checkbox",
     validate: (value: boolean) => true,
-    validationError: "", // No error needed since validation always passes
+    validationError: "",
   },
   {
     field: "reminderFrequency",
@@ -54,8 +46,8 @@ const notificationSettings = [
     icon: "bedtime",
     type: "number",
     placeholder: "e.g., 20 for 8 PM",
-    validate: (value: number, formData: NotificationSettings) =>
-      !isNaN(value) && value >= formData.startTime && value <= 23,
+    validate: (value: number, formData?: NotificationSettings) =>
+      !isNaN(value) && value >= (formData?.startTime ?? 0) && value <= 23,
     validationError: "Must be between start time and 23",
   },
   {
@@ -65,20 +57,30 @@ const notificationSettings = [
     icon: "volume-up",
     type: "checkbox",
     validate: (value: boolean) => true,
-    validationError: "", // No error needed since validation always passes
+    validationError: "",
   },
 ] as const;
 
-export default function NotificationsSettings() {
-  const theme = useTheme();
+/**
+ * NotificationsSettings screen allows users to configure notification preferences.
+ */
+const NotificationsSettings = () => {
+  // Hooks for theme, routing, and notification settings
+  const { colors } = useTheme();
   const router = useRouter();
   const { settings, updateSettings } = useNotifications();
 
-  const [formData, setFormData] = useState(settings);
+  // State for form data, errors, and loading
+  const [formData, setFormData] = useState<NotificationSettings>(settings);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleChange = (field: string, value: string | boolean) => {
+  /**
+   * Updates form data based on user input.
+   * @param field - The setting field to update
+   * @param value - The new value (string or boolean)
+   */
+  const handleChange = (field: keyof NotificationSettings, value: string | boolean) => {
     const newValue =
       typeof value === "string" &&
       (field === "reminderFrequency" || field === "startTime" || field === "endTime")
@@ -88,12 +90,19 @@ export default function NotificationsSettings() {
     setErrors((prev) => ({ ...prev, [field]: "" }));
   };
 
+  /**
+   * Validates the form data and updates errors.
+   * @returns True if the form is valid, false otherwise
+   */
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
     notificationSettings.forEach((setting) => {
-      const value = formData[setting.field as keyof NotificationSettings];
-      // @ts-ignore
-      if (!setting.validate(value as any, formData)) {
+      const value = formData[setting.field];
+      if (
+        setting.type === "number"
+          ? !setting.validate(value as number, formData)
+          : !setting.validate(value as boolean)
+      ) {
         newErrors[setting.field] = setting.validationError;
       }
     });
@@ -101,18 +110,20 @@ export default function NotificationsSettings() {
     return Object.keys(newErrors).length === 0;
   };
 
+  /**
+   * Handles form submission by updating settings and navigating back.
+   */
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
     setIsLoading(true);
     try {
       await updateSettings(formData);
-      console.log("Notification settings updated successfully");
       router.back();
     } catch (err) {
       console.error("Error updating notification settings:", err);
       if (err instanceof Error && "field" in err && "message" in err) {
-        setErrors((prev) => ({ ...prev, [err.field as string]: err.message }));
+        setErrors((prev) => ({ ...prev, [(err as any).field]: (err as any).message }));
       } else {
         setErrors((prev) => ({ ...prev, general: "Failed to update settings. Please try again." }));
       }
@@ -124,129 +135,122 @@ export default function NotificationsSettings() {
   const notificationEnabled = !!formData.enabled;
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        <Text
-          variant="headlineMedium"
-          style={[styles.title, { color: theme.colors.primary }]}
-        >
-          Notification Settings
-        </Text>
+    <ScrollView contentContainerStyle={styles.container}>
+      {/* Title */}
+      <Text
+        variant="headlineMedium"
+        style={[styles.title, { color: colors.primary }]}
+      >
+        Notification Settings
+      </Text>
 
-        {notificationSettings.map((setting, index) => {
-          const isDisabled = setting.field !== "enabled" && !notificationEnabled;
+      {/* Notification Settings List */}
+      {notificationSettings.map((setting, index) => {
+        const isDisabled = setting.field !== "enabled" && !notificationEnabled;
 
-          return (
-            <React.Fragment key={setting.field}>
-              <View style={[styles.settingContainer, isDisabled ? styles.disabledContainer : null]}>
-                <View style={styles.settingHeader}>
-                  <MaterialIcons
-                    name={setting.icon as any}
-                    size={24}
-                    color={theme.colors.primary}
-                    style={styles.settingIcon}
-                  />
-                  <View style={styles.settingTextContainer}>
-                    <View style={styles.titleRow}>
-                      <Text
-                        variant="titleMedium"
-                        style={[styles.settingTitle, isDisabled ? styles.disabledText : null]}
-                      >
-                        {setting.question}
-                      </Text>
-                      {setting.type === "checkbox" && (
-                        <Switch
-                          value={!!formData[setting.field as keyof NotificationSettings]}
-                          onValueChange={(value) => handleChange(setting.field, value)}
-                          disabled={isDisabled && setting.field !== "soundEnabled"}
-                          style={styles.switch}
-                        />
-                      )}
-                    </View>
+        return (
+          <React.Fragment key={setting.field}>
+            <View style={[styles.settingContainer, isDisabled && styles.disabledContainer]}>
+              {/* Setting Header */}
+              <View style={styles.settingHeader}>
+                <MaterialIcons
+                  name={setting.icon as any}
+                  size={24}
+                  color={colors.primary}
+                  style={styles.settingIcon}
+                />
+                <View style={styles.settingTextContainer}>
+                  <View style={styles.titleRow}>
                     <Text
-                      variant="bodySmall"
-                      style={[styles.settingDescription, isDisabled ? styles.disabledText : null]}
+                      variant="titleMedium"
+                      style={[styles.settingTitle, isDisabled && styles.disabledText]}
                     >
-                      {setting.description}
+                      {setting.question}
                     </Text>
-                  </View>
-                </View>
-
-                {setting.type === "number" ? (
-                  <>
-                    <TextInput
-                      mode="outlined"
-                      placeholder={setting.placeholder}
-                      value={String(formData[setting.field as keyof NotificationSettings] || "")}
-                      onChangeText={(value) => handleChange(setting.field, value)}
-                      keyboardType="numeric"
-                      style={styles.input}
-                      error={!!errors[setting.field]}
-                      outlineColor={theme.colors.primary}
-                      activeOutlineColor={theme.colors.primary}
-                      disabled={isDisabled}
-                    />
-                    {errors[setting.field] && (
-                      <HelperText
-                        type="error"
-                        visible={!!errors[setting.field]}
-                      >
-                        {errors[setting.field]}
-                      </HelperText>
+                    {setting.type === "checkbox" && (
+                      <Switch
+                        value={!!formData[setting.field]}
+                        onValueChange={(value) => handleChange(setting.field, value)}
+                        disabled={isDisabled && setting.field !== "soundEnabled"}
+                        style={styles.switch}
+                      />
                     )}
-                  </>
-                ) : null}
+                  </View>
+                  <Text
+                    variant="bodySmall"
+                    style={[styles.settingDescription, isDisabled && styles.disabledText]}
+                  >
+                    {setting.description}
+                  </Text>
+                </View>
               </View>
-              {index < notificationSettings.length - 1 && <Divider style={styles.divider} />}
-            </React.Fragment>
-          );
-        })}
 
-        <View style={{ flexDirection: "row", gap: 5 }}>
-          <Button
-            mode="outlined"
-            onPress={() => router.back()}
-            disabled={isLoading}
-            style={styles.button}
-            labelStyle={{ color: theme.colors.primary }}
-          >
-            Cancel
-          </Button>
-          <Button
-            mode="contained"
-            onPress={handleSubmit}
-            loading={isLoading}
-            disabled={isLoading}
-            style={styles.button}
-            labelStyle={{ color: theme.colors.onPrimary }}
-          >
-            Save
-          </Button>
-        </View>
+              {/* Number Input */}
+              {setting.type === "number" && (
+                <>
+                  <TextInput
+                    mode="outlined"
+                    placeholder={setting.placeholder}
+                    value={String(formData[setting.field] || "")}
+                    onChangeText={(value) => handleChange(setting.field, value)}
+                    keyboardType="numeric"
+                    style={styles.input}
+                    error={!!errors[setting.field]}
+                    outlineColor={colors.primary}
+                    activeOutlineColor={colors.primary}
+                    disabled={isDisabled}
+                  />
+                  {errors[setting.field] && (
+                    <HelperText
+                      type="error"
+                      visible={!!errors[setting.field]}
+                    >
+                      {errors[setting.field]}
+                    </HelperText>
+                  )}
+                </>
+              )}
+            </View>
+            {index < notificationSettings.length - 1 && <Divider style={styles.divider} />}
+          </React.Fragment>
+        );
+      })}
+
+      {/* Action Buttons */}
+      <View style={styles.buttonContainer}>
+        <Button
+          mode="outlined"
+          onPress={() => router.navigate('/(tabs)/profile')}
+          disabled={isLoading}
+          style={styles.button}
+          labelStyle={{ color: colors.primary }}
+        >
+          Cancel
+        </Button>
+        <Button
+          mode="contained"
+          onPress={handleSubmit}
+          loading={isLoading}
+          disabled={isLoading}
+          style={styles.button}
+          labelStyle={{ color: colors.onPrimary }}
+        >
+          Save
+        </Button>
       </View>
     </ScrollView>
   );
-}
+};
 
+// Styles for the NotificationsSettings component
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
-  content: {
     padding: 20,
   },
   title: {
     fontWeight: "bold",
     marginBottom: 20,
     textAlign: "center",
-  },
-  input: {
-    backgroundColor: "#fff",
-    marginTop: 8,
-  },
-  button: {
-    marginTop: 20,
-    flex: 1,
   },
   settingContainer: {
     marginVertical: 12,
@@ -281,6 +285,10 @@ const styles = StyleSheet.create({
   disabledText: {
     color: "#9ca3af",
   },
+  input: {
+    backgroundColor: "#fff",
+    marginTop: 8,
+  },
   divider: {
     marginVertical: 12,
     backgroundColor: "#e2e8f0",
@@ -288,4 +296,14 @@ const styles = StyleSheet.create({
   switch: {
     marginLeft: 8,
   },
+  buttonContainer: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 20,
+  },
+  button: {
+    flex: 1,
+  },
 });
+
+export default NotificationsSettings;

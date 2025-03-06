@@ -1,12 +1,11 @@
-// LocationContext.tsx
-import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import * as Location from "expo-location";
-import { updateUserData } from "@/services/update-user-profile";
-import { useAuth } from "../Auth/AuthProvider";
 import { Alert } from "react-native";
-import { db } from "@/firebaseConfig";
 import { doc, setDoc } from "firebase/firestore";
+import { db } from "@/firebaseConfig";
+import { useAuth } from "../Auth/AuthProvider";
 
+// Define the LocationState interface
 interface LocationState {
   locationPermission: string | null;
   location: Location.LocationObjectCoords | null;
@@ -15,49 +14,74 @@ interface LocationState {
   setLocation: (location: Location.LocationObjectCoords | null) => void;
 }
 
+// Create the LocationContext
 const LocationContext = createContext<LocationState | undefined>(undefined);
 
+/**
+ * LocationProvider manages location permissions and data, syncing with Firestore.
+ * @param children - The child components to render within the provider
+ */
 export function LocationProvider({ children }: { children: ReactNode }) {
+  // State for location data and permissions
   const [locationPermission, setLocationPermission] = useState<string | null>(null);
   const [location, setLocation] = useState<Location.LocationObjectCoords | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Hook for auth user data
   const { user } = useAuth();
 
+  /**
+   * Requests foreground location permission and updates location state.
+   */
   const requestPermission = async () => {
     try {
-      let { status } = await Location.requestForegroundPermissionsAsync();
+      const { status } = await Location.requestForegroundPermissionsAsync();
       setLocationPermission(status);
+
       if (status !== "granted") {
         setError("Permission to access location was denied");
         return;
       }
 
-      let locationData = await Location.getCurrentPositionAsync({});
+      const locationData = await Location.getCurrentPositionAsync({});
       setLocation(locationData.coords);
     } catch (err) {
-      setError("Error requesting location permission");
+      const errorMessage =
+        err instanceof Error ? err.message : "Error requesting location permission";
+      setError(errorMessage);
+      Alert.alert("Location Error", errorMessage);
     }
   };
 
+  // Sync location from user settings on mount or user change
   useEffect(() => {
     if (!location && user?.settings?.location) {
-      setLocation(user?.settings.location);
+      setLocation(user.settings.location);
     }
   }, [user]);
 
+  // Update Firestore with location data when it changes
   useEffect(() => {
-    const docRef = doc(db, `users/${user?.uid}`);
-    setDoc(
-      docRef,
-      {
-        settings: { location: location },
-        lastUpdated: new Date(),
-      },
-      { merge: true }
-    );
-  }, [location]);
+    if (user?.uid && location) {
+      const docRef = doc(db, "users", user.uid);
+      setDoc(
+        docRef,
+        {
+          settings: { location },
+          lastUpdated: new Date(),
+        },
+        { merge: true }
+      ).catch((err) => {
+        const errorMessage =
+          err instanceof Error ? err.message : "Error updating location in Firestore";
+        setError(errorMessage);
+        Alert.alert("Firestore Error", errorMessage);
+      });
+    }
+  }, [location, user]);
 
-  const value = {
+  // Context value
+  const value: LocationState = {
     locationPermission,
     location,
     error,
@@ -68,6 +92,11 @@ export function LocationProvider({ children }: { children: ReactNode }) {
   return <LocationContext.Provider value={value}>{children}</LocationContext.Provider>;
 }
 
+/**
+ * Hook to access the location context.
+ * @returns The current location context value
+ * @throws Error if used outside LocationProvider
+ */
 export function useLocation() {
   const context = useContext(LocationContext);
   if (context === undefined) {
