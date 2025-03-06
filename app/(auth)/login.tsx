@@ -57,6 +57,7 @@ const SignInForm = () => {
           render={({ field: { onChange, onBlur, value } }) => (
             <>
               <TextInput
+                testID="Email"
                 label="Email"
                 value={value}
                 onChangeText={onChange}
@@ -85,6 +86,7 @@ const SignInForm = () => {
           render={({ field: { onChange, onBlur, value } }) => (
             <>
               <TextInput
+                testID="Password"
                 label="Password"
                 value={value}
                 onChangeText={onChange}

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Modal, Portal, Text, Button, TextInput } from "react-native-paper";
-import { Alert, Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { useTheme } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { addWaterIntake } from "@/services/add-water-intake";
@@ -17,17 +17,23 @@ type AddDrinkModalProps = {
 
 export const AddDrinkModal = ({ children, onComplete }: AddDrinkModalProps) => {
   const [visible, setVisible] = useState(false);
-  const [selectedValue, setSelectedValue] = useState<number>(250); // Default 250ml
-  const [customValue, setCustomValue] = useState<string>(""); // For custom input
+  const [selectedValue, setSelectedValue] = useState<number>(250);
+  const [customValue, setCustomValue] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null); // New state for error message
   const theme = useTheme();
   const { user } = useAuth();
 
   const showModal = () => setVisible(true);
-  const hideModal = () => setVisible(false);
+  const hideModal = () => {
+    setVisible(false);
+    setError(null); // Clear error when closing
+    setCustomValue(""); // Reset custom input
+  };
 
   const addDrink = async () => {
     setLoading(true);
+    setError(null); // Clear previous error
     try {
       const amount = customValue ? parseInt(customValue, 10) : selectedValue;
       if (isNaN(amount) || amount <= 0) {
@@ -35,26 +41,21 @@ export const AddDrinkModal = ({ children, onComplete }: AddDrinkModalProps) => {
       }
       await addWaterIntake({ user: user, amount });
       onComplete && onComplete();
-      setCustomValue("");
       hideModal();
     } catch (error: any) {
+      setError(error.message || "Failed to add drink. Please try again.");
       console.error("Error adding drink:", error.message);
-      // Optional: Add user feedback here (e.g., toast or alert)
-      // Example with Alert:
-      Alert.alert("Error", error.message || "Failed to add drink. Please try again.");
     } finally {
-      setLoading(false); // Ensure loading is reset regardless of success or failure
+      setLoading(false);
     }
   };
 
-  // Predefined options with specific icons
   const predefinedAmounts = [
-    { value: 200, icon: "cup" }, // Small cup
-    { value: 250, icon: "glass-mug" }, // Large cup
-    { value: 300, icon: "bottle-soda-outline" }, // Bottle
+    { value: 200, icon: "cup" },
+    { value: 250, icon: "glass-mug" },
+    { value: 300, icon: "bottle-soda-outline" },
   ];
 
-  // Clone the trigger and add onPress
   const triggerWithOnPress = React.cloneElement(children, { onPress: showModal });
 
   return (
@@ -88,12 +89,13 @@ export const AddDrinkModal = ({ children, onComplete }: AddDrinkModalProps) => {
                 ]}
                 onPress={() => {
                   setSelectedValue(value);
-                  setCustomValue(""); // Reset custom input when selecting predefined
+                  setCustomValue("");
+                  setError(null); // Clear error when selecting predefined
                 }}
               >
                 <MaterialCommunityIcons
                   name={icon as any}
-                  size={32} // Larger icons
+                  size={32}
                   color={
                     selectedValue === value && customValue === "" ? theme.colors.primary : "gray"
                   }
@@ -103,14 +105,23 @@ export const AddDrinkModal = ({ children, onComplete }: AddDrinkModalProps) => {
             ))}
           </View>
           <TextInput
+            testID="custom-amount-input"
             label="Custom Amount (ml)"
-            defaultValue={customValue}
-            onChangeText={setCustomValue} // Only update customValue, no selectedValue change
+            value={customValue} // Use value instead of defaultValue for controlled input
+            onChangeText={setCustomValue}
             keyboardType="numeric"
             mode="flat"
             style={styles.textInput}
             placeholder="Enter amount"
           />
+          {error && (
+            <Text
+              testID="error-text"
+              style={{ color: theme.colors.error }}
+            >
+              {error}
+            </Text>
+          )}
           <View style={styles.buttonsContainer}>
             <Button
               mode="outlined"
@@ -155,8 +166,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#e6f0ff",
   },
   optionText: {
-    marginTop: 6, // Space between icon and text
-    fontSize: 14, // Smaller text
+    marginTop: 6,
+    fontSize: 14,
     color: "black",
   },
   textInput: {

@@ -132,7 +132,7 @@ const WaterIntakeChart = ({
 export default WaterIntakeChart;
 
 // Improved process for chart with smart labeling based on view mode
-const processDataForChart = (Data, viewMode = "week") => {
+const processDataForChart = (Data: any, viewMode = "week") => {
   const dataEntries = Object.entries(Data)
     .map(([dateString, data]) => {
       const momentDate = moment(dateString);
