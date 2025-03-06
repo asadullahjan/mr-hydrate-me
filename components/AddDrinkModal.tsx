@@ -40,7 +40,7 @@ export const AddDrinkModal = ({ children, onComplete }: AddDrinkModalProps) => {
         throw new Error("Please enter a valid amount greater than 0");
       }
       await addWaterIntake({ user: user, amount });
-      onComplete && onComplete();
+      if (onComplete) onComplete();
       hideModal();
     } catch (error: any) {
       setError(error.message || "Failed to add drink. Please try again.");

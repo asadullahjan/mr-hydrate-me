@@ -14,7 +14,7 @@ import { useRouter } from "expo-router";
 import {
   NotificationSettings,
   useNotifications,
-} from "@/components/Notifications/NotificationsProvider";
+} from "@/components/Notifications/NotificationsProvider"; // Adjust path
 import { MaterialIcons } from "@expo/vector-icons";
 
 const notificationSettings = [
@@ -25,6 +25,7 @@ const notificationSettings = [
     icon: "notifications",
     type: "checkbox",
     validate: (value: boolean) => true,
+    validationError: "", // No error needed since validation always passes
   },
   {
     field: "reminderFrequency",
@@ -34,6 +35,7 @@ const notificationSettings = [
     type: "number",
     placeholder: "e.g., 4",
     validate: (value: number) => !isNaN(value) && value > 0 && value <= 24,
+    validationError: "Must be between 1 and 24",
   },
   {
     field: "startTime",
@@ -43,6 +45,7 @@ const notificationSettings = [
     type: "number",
     placeholder: "e.g., 8 for 8 AM",
     validate: (value: number) => !isNaN(value) && value >= 0 && value <= 23,
+    validationError: "Must be between 0 and 23",
   },
   {
     field: "endTime",
@@ -53,6 +56,7 @@ const notificationSettings = [
     placeholder: "e.g., 20 for 8 PM",
     validate: (value: number, formData: NotificationSettings) =>
       !isNaN(value) && value >= formData.startTime && value <= 23,
+    validationError: "Must be between start time and 23",
   },
   {
     field: "soundEnabled",
@@ -61,6 +65,7 @@ const notificationSettings = [
     icon: "volume-up",
     type: "checkbox",
     validate: (value: boolean) => true,
+    validationError: "", // No error needed since validation always passes
   },
 ] as const;
 
@@ -87,18 +92,9 @@ export default function NotificationsSettings() {
     const newErrors: { [key: string]: string } = {};
     notificationSettings.forEach((setting) => {
       const value = formData[setting.field as keyof NotificationSettings];
-      if (setting.type === "checkbox") {
-        if (!setting.validate(value as boolean)) {
-          newErrors[setting.field] = `Please provide a valid ${setting.field
-            .replace(/([A-Z])/g, " $1")
-            .toLowerCase()}`;
-        }
-      } else if (setting.type === "number") {
-        if (!setting.validate(value as number, formData)) {
-          newErrors[setting.field] = `Please provide a valid ${setting.field
-            .replace(/([A-Z])/g, " $1")
-            .toLowerCase()}`;
-        }
+      // @ts-ignore
+      if (!setting.validate(value as any, formData)) {
+        newErrors[setting.field] = setting.validationError;
       }
     });
     setErrors(newErrors);
@@ -115,13 +111,16 @@ export default function NotificationsSettings() {
       router.back();
     } catch (err) {
       console.error("Error updating notification settings:", err);
-      setErrors((prev) => ({ ...prev, general: "Failed to update settings. Please try again." }));
+      if (err instanceof Error && "field" in err && "message" in err) {
+        setErrors((prev) => ({ ...prev, [err.field as string]: err.message }));
+      } else {
+        setErrors((prev) => ({ ...prev, general: "Failed to update settings. Please try again." }));
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Check if notifications are enabled
   const notificationEnabled = !!formData.enabled;
 
   return (
@@ -135,7 +134,6 @@ export default function NotificationsSettings() {
         </Text>
 
         {notificationSettings.map((setting, index) => {
-          // Determine if this field should be disabled
           const isDisabled = setting.field !== "enabled" && !notificationEnabled;
 
           return (
@@ -156,8 +154,6 @@ export default function NotificationsSettings() {
                       >
                         {setting.question}
                       </Text>
-
-                      {/* Checkbox controls moved to be next to the label */}
                       {setting.type === "checkbox" && (
                         <Switch
                           value={!!formData[setting.field as keyof NotificationSettings]}
@@ -206,24 +202,15 @@ export default function NotificationsSettings() {
           );
         })}
 
-        {errors.general && (
-          <HelperText
-            type="error"
-            visible={!!errors.general}
-          >
-            {errors.general}
-          </HelperText>
-        )}
         <View style={{ flexDirection: "row", gap: 5 }}>
           <Button
             mode="outlined"
             onPress={() => router.back()}
-            loading={isLoading}
             disabled={isLoading}
             style={styles.button}
             labelStyle={{ color: theme.colors.primary }}
           >
-            cancel
+            Cancel
           </Button>
           <Button
             mode="contained"

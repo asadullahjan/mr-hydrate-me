@@ -66,6 +66,7 @@ const SignInForm = () => {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 error={!!errors.email}
+                style={styles.input}
               />
               <HelperText
                 type="error"
@@ -95,6 +96,7 @@ const SignInForm = () => {
                 secureTextEntry={!showPassword}
                 error={!!errors.password}
                 autoCapitalize="none"
+                style={styles.input}
                 right={
                   <TextInput.Icon
                     icon={showPassword ? "eye-off" : "eye"}
@@ -167,6 +169,9 @@ const styles = StyleSheet.create({
   hint: {
     textAlign: "center",
     opacity: 0.7,
+  },
+  input: {
+    backgroundColor: "white",
   },
 });
 

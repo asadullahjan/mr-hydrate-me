@@ -76,6 +76,7 @@ const SignUpForm = () => {
                 autoCapitalize="none"
                 mode="outlined"
                 error={!!errors.email}
+                theme={{ colors: { background: "white" } }}
               />
               <HelperText
                 type="error"
@@ -107,6 +108,7 @@ const SignUpForm = () => {
                 onBlur={onBlur}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
+                theme={{ colors: { background: "white" } }}
                 right={
                   <TextInput.Icon
                     icon={showPassword ? "eye-off" : "eye"}

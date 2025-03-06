@@ -37,7 +37,6 @@ export const ArcProgress = ({
       animation.removeListener(listener); // Cleanup listener
     };
   }, [progress]);
-
   // Convert progress percentage (0-100) to radians (0 to π)
   const startAngle = -Math.PI / 1.3; // 180 degrees (bottom left)
   const totalSpan = (Math.PI / 1.3) * 2; // Total arc span (twice the start angle magnitude, ~276.92°)

@@ -2,7 +2,7 @@ import { router, Tabs } from "expo-router";
 import { FontAwesome, Ionicons } from "@expo/vector-icons";
 import { ActivityIndicator, useTheme } from "react-native-paper";
 import { Alert, StyleProp, TouchableOpacity, View, ViewStyle, StyleSheet } from "react-native";
-import { useLocation } from "@/components/Location/LocationProvider";
+import { LocationProvider, useLocation } from "@/components/Location/LocationProvider";
 import { useEffect } from "react";
 import { useAuth } from "@/components/Auth/AuthProvider";
 import { AddDrinkModal } from "@/components/AddDrinkModal";
@@ -36,58 +36,60 @@ export default function TabsLayout() {
   }
 
   return (
-    <NotificationsProvider>
-      <View style={styles.container}>
-        <Tabs
-          screenOptions={{
-            tabBarActiveTintColor: theme.colors.primary,
-            tabBarInactiveTintColor: theme.colors.secondary,
-            headerShown: false,
-            tabBarStyle: {
-              backgroundColor: theme.colors.background,
-              borderTopLeftRadius: 20,
-              borderTopRightRadius: 20,
-              height: 80,
-            },
-            tabBarItemStyle: {
-              height: 50,
-              margin: "auto",
-            },
-          }}
-        >
-          {MAIN_TAB_ROUTES.map((tab) => (
-            <Tabs.Screen
-              key={tab.name}
-              name={tab.name}
-              options={{
-                title: tab.title,
-                tabBarIcon: ({ color, size }) => (
-                  <FontAwesome
-                    name={tab.icon as any}
-                    size={size}
-                    color={color}
-                  />
-                ),
-                ...(tab.hidden && { href: null }),
-                sceneStyle,
-              }}
-            />
-          ))}
-        </Tabs>
-        {/* Plus button overlaid on top of the tab bar */}
-        <AddDrinkModal>
-          {/* <View style={styles.fabContainer}> */}
-          <TouchableOpacity style={[styles.fab, { backgroundColor: theme.colors.primary }]}>
-            <Ionicons
-              name="add"
-              size={24}
-              color={theme.colors.onPrimary}
-            />
-          </TouchableOpacity>
-          {/* </View> */}
-        </AddDrinkModal>
-      </View>
-    </NotificationsProvider>
+    <LocationProvider>
+      <NotificationsProvider>
+        <View style={styles.container}>
+          <Tabs
+            screenOptions={{
+              tabBarActiveTintColor: theme.colors.primary,
+              tabBarInactiveTintColor: theme.colors.secondary,
+              headerShown: false,
+              tabBarStyle: {
+                backgroundColor: theme.colors.background,
+                borderTopLeftRadius: 20,
+                borderTopRightRadius: 20,
+                height: 80,
+              },
+              tabBarItemStyle: {
+                height: 50,
+                margin: "auto",
+              },
+            }}
+          >
+            {MAIN_TAB_ROUTES.map((tab) => (
+              <Tabs.Screen
+                key={tab.name}
+                name={tab.name}
+                options={{
+                  title: tab.title,
+                  tabBarIcon: ({ color, size }) => (
+                    <FontAwesome
+                      name={tab.icon as any}
+                      size={size}
+                      color={color}
+                    />
+                  ),
+                  ...(tab.hidden && { href: null }),
+                  sceneStyle,
+                }}
+              />
+            ))}
+          </Tabs>
+          {/* Plus button overlaid on top of the tab bar */}
+          <AddDrinkModal>
+            {/* <View style={styles.fabContainer}> */}
+            <TouchableOpacity style={[styles.fab, { backgroundColor: theme.colors.primary }]}>
+              <Ionicons
+                name="add"
+                size={24}
+                color={theme.colors.onPrimary}
+              />
+            </TouchableOpacity>
+            {/* </View> */}
+          </AddDrinkModal>
+        </View>
+      </NotificationsProvider>
+    </LocationProvider>
   );
 }
 

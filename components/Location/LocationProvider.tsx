@@ -40,6 +40,12 @@ export function LocationProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    if (!location && user?.settings?.location) {
+      setLocation(user?.settings.location);
+    }
+  }, [user]);
+
+  useEffect(() => {
     const docRef = doc(db, `users/${user?.uid}`);
     setDoc(
       docRef,

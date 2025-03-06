@@ -36,15 +36,10 @@ const Profile = () => {
 
   const handleLogout = () => {
     setLogoutDialogVisible(false);
-    auth
-      .signOut()
-      .then(() => {
-        console.log("User logged out successfully");
-      })
-      .catch((error) => {
-        console.error("Error logging out:", error);
-        Alert.alert("Logout Error", "Failed to log out. Please try again.");
-      });
+    auth.signOut().catch((error) => {
+      console.error("Error logging out:", error);
+      Alert.alert("Logout Error", "Failed to log out. Please try again.");
+    });
   };
 
   return (
@@ -87,8 +82,7 @@ const Profile = () => {
             </View>
           </View>
         </View>
-
-        {/* Custom Theme Dropdown */}
+        {/* Custom Theme Dropdown
         <CustomDropdown
           label="Theme"
           options={themeOptions}
@@ -96,8 +90,7 @@ const Profile = () => {
           onChange={handleThemeChange}
           style={{ backgroundColor: theme.colors.background }}
           primaryColor={theme.colors.primary}
-        />
-
+        /> */}
         {/* Action Buttons Grid */}
         <View style={styles.buttonsGrid}>
           {/* Top Row */}

@@ -32,19 +32,15 @@ export const useUserHistoryStore = create<HistoryStore>((set) => ({
   loading: false,
   fetchHistory: async (userId, startDate, endDate) => {
     set({ loading: true });
-    console.log("Fetching history for user:", userId, "from", startDate, "to", endDate);
 
     try {
       const recordsRef = collection(db, `/users/${userId}/dailyRecords`);
       const q = query(recordsRef, where("date", ">=", startDate), where("date", "<=", endDate));
-      console.log("Query built:", q);
 
       const snapshot = await getDocs(q);
-      console.log("Snapshot size:", snapshot.size); // Number of documents fetched
 
       const historyData: Record<string, DailyRecord> = {};
       snapshot.forEach((doc) => {
-        console.log("Document ID:", doc.id, "Data:", doc.data());
         const data = doc.data();
         historyData[doc.id] = {
           date: doc.id,
@@ -81,7 +77,6 @@ export const useUserHistoryStore = create<HistoryStore>((set) => ({
         }
       }
 
-      console.log("Processed history:", historyData);
       set({ history: historyData, loading: false });
     } catch (error) {
       console.error("Error fetching user history:", error);

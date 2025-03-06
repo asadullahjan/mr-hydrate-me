@@ -49,10 +49,6 @@ const WaterIntakeChart = ({
     }
   }, [userId, data, viewMode]);
 
-  useEffect(() => {
-    console.log({ Data: Data?.datasets[0].data });
-  }, [Data]);
-
   // Dynamically determine label size and skipping based on view mode
   const getLabelStyle = () => {
     switch (viewMode) {

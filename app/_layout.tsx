@@ -12,9 +12,7 @@ export default function RootLayout() {
     colors: {
       ...DefaultTheme.colors,
       primary: "#27ADC2",
-      primaryContainer: "#27ADC2",
       secondary: "#8BD9E5",
-      secondaryContainer: "#8BD9E5",
       background: "#D8F0FC",
       outline: "#47AEBE",
     },
@@ -23,7 +21,6 @@ export default function RootLayout() {
   return (
     <PaperProvider theme={theme}>
       <AuthProvider>
-        <LocationProvider>
           <Stack
             screenOptions={{
               headerShown: false,
@@ -32,7 +29,6 @@ export default function RootLayout() {
               },
             }}
           />
-        </LocationProvider>
       </AuthProvider>
     </PaperProvider>
   );

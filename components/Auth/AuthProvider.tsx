@@ -6,6 +6,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "@/firebaseConfig";
 import { ActivityIndicator, Alert, View } from "react-native";
 import { DefaultTheme, PaperProvider } from "react-native-paper";
+import * as Location from "expo-location";
 
 // Define types for our context
 export type User = {
@@ -22,7 +23,7 @@ export type User = {
   lastStreakUpdate: Date;
   currentStreak: number;
   settings: {
-    location: string;
+    location: Location.LocationObjectCoords;
     notifications: {
       enabled: boolean;
       reminderFrequency: number;

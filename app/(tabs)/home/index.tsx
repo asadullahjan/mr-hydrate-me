@@ -13,6 +13,8 @@ import { getWeekMonthData } from "@/services/get-week-month-progress";
 import { DailyRecord } from "@/store/userHistoryStore";
 import { router } from "expo-router";
 import { useLocation } from "@/components/Location/LocationProvider";
+import * as Notifications from "expo-notifications";
+import { SchedulableTriggerInputTypes } from "expo-notifications";
 
 const Home = () => {
   const [todayData, setTodayData] = useState<DailyRecord>();
@@ -35,6 +37,8 @@ const Home = () => {
     setLoading(true);
     checkAndUpdateDailyWaterGoal(user?.uid!, location)
       .then((data) => {
+        console.log({ data });
+
         setTodayData(data);
       })
       .catch((e) => {

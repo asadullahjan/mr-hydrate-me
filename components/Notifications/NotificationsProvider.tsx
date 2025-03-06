@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import * as Notifications from "expo-notifications";
-import { useAuth } from "@/components/Auth/AuthProvider"; // Adjust path
-import { updateUserData } from "@/services/update-user-profile";
+import { useAuth } from "@/components/Auth/AuthProvider";
 import { db } from "@/firebaseConfig";
 import { doc, setDoc } from "firebase/firestore";
 
@@ -18,7 +17,7 @@ interface NotificationsState {
   notificationPermission: string | null;
   settings: NotificationSettings;
   error: string | null;
-  requestPermission: () => Promise<void>;
+  requestPermission: () => Promise<boolean>;
   updateSettings: (newSettings: Partial<NotificationSettings>) => Promise<void>;
 }
 
@@ -38,29 +37,27 @@ async function scheduleNotifications(settings: NotificationSettings) {
   await Notifications.cancelAllScheduledNotificationsAsync(); // Clear existing
 
   if (!settings.enabled) return;
-
+  console.log({ settings });
   const { reminderFrequency, startTime, endTime, soundEnabled } = settings;
-  const interval = (endTime - startTime) / reminderFrequency; // Hours between notifications
-  const now = new Date();
+  const timeRangeHours = endTime - startTime; // Total hours in the range
+  const intervalSeconds = Math.round((timeRangeHours * 60 * 60) / reminderFrequency); // Convert hours to seconds
 
-  for (let i = 0; i < reminderFrequency; i++) {
-    const trigger = new Date();
-    trigger.setHours(startTime + i * interval, 0, 0, 0); // Evenly spaced within range
-    if (trigger < now) continue; // Skip past triggers
+  console.log(`Time range: ${timeRangeHours} hours, Interval: ${intervalSeconds} seconds`);
 
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: "Time to Hydrate!",
-        body: "Drink some water to stay on track.",
-        sound: soundEnabled ? "default" : false,
-      },
-      trigger: {
-        type: "date",
-        date: trigger.setSeconds(now.getSeconds() + 5),
-        repeats: true, // Daily repeat
-      } as Notifications.DateTriggerInput,
-    });
-  }
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: "Time to Hydrate!",
+      body: "Drink some water to stay on track.",
+      sound: soundEnabled ? "default" : false,
+    },
+    trigger: {
+      type: "timeInterval",
+      seconds: intervalSeconds,
+      repeats: true,
+    } as Notifications.TimeIntervalTriggerInput,
+  });
+
+  console.log(`Notification scheduled with interval: ${intervalSeconds} seconds`);
 }
 
 export function NotificationsProvider({ children }: { children: ReactNode }) {
@@ -69,7 +66,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
-  // Request notification permissions on mount
+  // Request notification permissions
   const requestPermission = async () => {
     try {
       const { status } = await Notifications.requestPermissionsAsync({
@@ -82,33 +79,45 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       setNotificationPermission(status);
       if (status !== "granted") {
         setError("Notification permissions denied");
-        setSettings((prev) => ({ ...prev, enabled: false }));
-        return;
+        return false;
       }
-      // Schedule notifications if enabled and permissions granted
-      if (settings.enabled) {
-        await scheduleNotifications(settings);
-      }
+      return true;
     } catch (err) {
       setError("Error requesting notification permissions");
       console.error(err);
+      return false;
     }
   };
 
-  // Load initial settings and request permissions
+  // Load settings and initialize notifications on mount
   useEffect(() => {
-    if (user?.settings?.notifications) {
-      setSettings({
-        enabled: user.settings.notifications.enabled ?? defaultSettings.enabled,
-        reminderFrequency:
-          user.settings.notifications.reminderFrequency ?? defaultSettings.reminderFrequency,
-        startTime: user.settings.notifications.startTime ?? defaultSettings.startTime,
-        endTime: user.settings.notifications.endTime ?? defaultSettings.endTime,
-        soundEnabled: user.settings.notifications.soundEnabled ?? defaultSettings.soundEnabled,
-      });
-    }
-    requestPermission(); // Request permissions on app start
-  }, [user]);
+    const initializeNotifications = async () => {
+      // Determine initial settings from Firebase or defaults
+      let initialSettings = defaultSettings;
+      if (user?.settings?.notifications) {
+        initialSettings = {
+          enabled: user.settings.notifications.enabled ?? defaultSettings.enabled,
+          reminderFrequency:
+            user.settings.notifications.reminderFrequency ?? defaultSettings.reminderFrequency,
+          startTime: user.settings.notifications.startTime ?? defaultSettings.startTime,
+          endTime: user.settings.notifications.endTime ?? defaultSettings.endTime,
+          soundEnabled: user.settings.notifications.soundEnabled ?? defaultSettings.soundEnabled,
+        };
+        console.log("Loaded settings from Firebase:", initialSettings);
+      }
+
+      // Set settings synchronously before proceeding
+      setSettings(initialSettings);
+
+      // Request permissions and schedule with the initial settings
+      const permissionGranted = await requestPermission();
+      if (permissionGranted && initialSettings.enabled) {
+        await scheduleNotifications(initialSettings);
+      }
+    };
+
+    initializeNotifications();
+  }, [user]); // Runs when user changes
 
   // Persist settings to Firestore and reschedule notifications
   const updateSettings = async (newSettings: Partial<NotificationSettings>) => {
@@ -118,20 +127,16 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 
       if (!user?.uid) throw new Error("No user ID available");
 
-      // Update Firestore
-      const docRef = doc(db, `users/${user.uid}`);
-      await setDoc(
-        docRef,
-        {
-          settings: {
-            ...updatedSettings,
-          },
-          lastUpdated: new Date(),
+      const notificationData = {
+        settings: {
+          notifications: updatedSettings,
         },
-        { merge: true }
-      );
+        lastUpdated: new Date(),
+      };
 
-      // Schedule or cancel notifications
+      const docRef = doc(db, `users/${user.uid}`);
+      await setDoc(docRef, notificationData, { merge: true });
+
       if (updatedSettings.enabled && notificationPermission === "granted") {
         await scheduleNotifications(updatedSettings);
       } else {

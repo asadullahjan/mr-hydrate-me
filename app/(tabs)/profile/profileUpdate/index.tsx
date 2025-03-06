@@ -133,7 +133,6 @@ export default function EditProfileScreen() {
       if (!userIdToUse) throw new Error("No user ID available");
 
       const result = await updateUserData(userIdToUse, userData);
-      console.log("User data updated successfully:", result);
       router.back();
     } catch (err) {
       console.error("Error updating user data:", err);
@@ -215,7 +214,6 @@ export default function EditProfileScreen() {
           <Button
             mode="outlined"
             onPress={() => router.back()}
-            loading={isLoading}
             disabled={isLoading}
             style={styles.button}
             labelStyle={{ color: theme.colors.primary }}
