@@ -23,6 +23,13 @@ export type User = {
   currentStreak: number;
   settings: {
     location: string;
+    notifications: {
+      enabled: boolean;
+      reminderFrequency: number;
+      startTime: number;
+      endTime: number;
+      soundEnabled: boolean;
+    };
   };
   onBoardingCompleted?: boolean;
 } | null;

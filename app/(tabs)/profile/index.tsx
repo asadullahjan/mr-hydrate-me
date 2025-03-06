@@ -118,8 +118,7 @@ const Profile = () => {
             {/* Notifications Button */}
             <TouchableOpacity
               style={[styles.actionButton, { backgroundColor: theme.colors.background }]}
-              onPress={() => console.log("Notifications")}
-              disabled
+              onPress={() => router.navigate("/(tabs)/profile/notificationsSettings")}
             >
               <Ionicons
                 name="notifications"
@@ -127,7 +126,6 @@ const Profile = () => {
                 color={theme.colors.primary}
               />
               <Text style={[styles.buttonText]}>Notifications</Text>
-              <Text variant="labelSmall">Coming Soon</Text>
             </TouchableOpacity>
           </View>
 

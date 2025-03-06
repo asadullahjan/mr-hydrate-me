@@ -1,15 +1,23 @@
 import React, { useState, useEffect } from "react";
 import { View, ScrollView, StyleSheet } from "react-native";
-import { Text, TextInput, Button, RadioButton, HelperText, useTheme } from "react-native-paper";
+import {
+  Text,
+  TextInput,
+  Button,
+  RadioButton,
+  HelperText,
+  useTheme,
+  Surface,
+} from "react-native-paper";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { useAuth } from "@/components/Auth/AuthProvider"; // Adjust path as needed
+import { useAuth } from "@/components/Auth/AuthProvider";
 import { updateUserData } from "@/services/update-user-profile";
 
-// Define ActivityLevel and Gender types (based on your interface)
+// Define ActivityLevel and Gender types
 type ActivityLevel = "sedentary" | "light" | "moderate" | "very" | "extreme";
 type Gender = "male" | "female" | "other" | "preferNotToSay";
 
-// Questions array from your input
+// Questions array
 const questions = [
   {
     field: "name",
@@ -57,10 +65,9 @@ const questions = [
 export default function EditProfileScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const { user } = useAuth(); // Get the current user from AuthProvider
-  const { userId } = useLocalSearchParams(); // Optional: If passing userId via params
+  const { user } = useAuth();
+  const { userId } = useLocalSearchParams();
 
-  // State for form data
   const [formData, setFormData] = useState<{
     name: string;
     age: string;
@@ -72,13 +79,12 @@ export default function EditProfileScreen() {
     age: "",
     height: "",
     weight: "",
-    activity: "sedentary", // Default value for activity
+    activity: "sedentary",
   });
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isLoading, setIsLoading] = useState(false);
 
-  // Load existing user data on mount
   useEffect(() => {
     if (user?.profile) {
       setFormData({
@@ -91,14 +97,11 @@ export default function EditProfileScreen() {
     }
   }, [user]);
 
-  // Handle input changes
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    // Clear error for this field
     setErrors((prev) => ({ ...prev, [field]: "" }));
   };
 
-  // Validate form
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
     questions.forEach((question) => {
@@ -111,7 +114,6 @@ export default function EditProfileScreen() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle form submission
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
@@ -124,16 +126,15 @@ export default function EditProfileScreen() {
           height: Number(formData.height),
           weight: Number(formData.weight),
           activity: formData.activity as ActivityLevel,
-          // You can add gender here if you extend the questions array
         },
       };
 
-      const userIdToUse = user?.uid || (userId as string); // Use authenticated user ID or passed ID
+      const userIdToUse = user?.uid || (userId as string);
       if (!userIdToUse) throw new Error("No user ID available");
 
       const result = await updateUserData(userIdToUse, userData);
       console.log("User data updated successfully:", result);
-      router.back(); // Navigate back to the profile or home screen
+      router.back();
     } catch (err) {
       console.error("Error updating user data:", err);
       setErrors((prev) => ({ ...prev, general: "Failed to update profile. Please try again." }));
@@ -157,22 +158,18 @@ export default function EditProfileScreen() {
             key={question.field}
             style={styles.questionContainer}
           >
-            <Text
-              variant="bodyLarge"
-              style={{ color: theme.colors.secondary }}
-            >
-              {question.question}
-            </Text>
+            <Text variant="bodyLarge">{question.question}</Text>
             {question.type === "text" || question.type === "number" ? (
               <>
                 <TextInput
                   mode="outlined"
-                  label={question.placeholder}
+                  placeholder={question.placeholder}
                   value={formData[question.field as keyof typeof formData]}
                   onChangeText={(value) => handleChange(question.field, value)}
                   keyboardType={question.type === "number" ? "numeric" : "default"}
                   style={styles.input}
                   error={!!errors[question.field]}
+                  outlineColor={theme.colors.primary}
                 />
                 {errors[question.field] && (
                   <HelperText
@@ -184,24 +181,23 @@ export default function EditProfileScreen() {
                 )}
               </>
             ) : question.type === "radio" ? (
-              question.options?.map((option) => (
-                <View
-                  key={option.id}
-                  style={styles.radioItem}
-                >
-                  <RadioButton
-                    value={option.id}
-                    status={formData.activity === option.id ? "checked" : "unchecked"}
-                    onPress={() => handleChange("activity", option.id)}
-                  />
-                  <View>
-                    <Text style={{ color: theme.colors.secondary }}>{option.label}</Text>
-                    <Text style={{ color: theme.colors.onSurfaceVariant }}>
-                      {option.description}
-                    </Text>
-                  </View>
-                </View>
-              ))
+              <RadioButton.Group
+                onValueChange={(value) => handleChange("activity", value)}
+                value={formData.activity || "sedentary"}
+              >
+                {question.options?.map((option) => (
+                  <Surface
+                    key={option.id}
+                    elevation={1}
+                    style={styles.radioSurface}
+                  >
+                    <RadioButton.Item
+                      label={option.label}
+                      value={option.id}
+                    />
+                  </Surface>
+                ))}
+              </RadioButton.Group>
             ) : null}
           </View>
         ))}
@@ -215,16 +211,28 @@ export default function EditProfileScreen() {
           </HelperText>
         )}
 
-        <Button
-          mode="contained"
-          onPress={handleSubmit}
-          loading={isLoading}
-          disabled={isLoading}
-          style={styles.button}
-          labelStyle={{ color: theme.colors.onPrimary }}
-        >
-          Save Changes
-        </Button>
+        <View style={{ flexDirection: "row", gap: 5 }}>
+          <Button
+            mode="outlined"
+            onPress={() => router.back()}
+            loading={isLoading}
+            disabled={isLoading}
+            style={styles.button}
+            labelStyle={{ color: theme.colors.primary }}
+          >
+            cancel
+          </Button>
+          <Button
+            mode="contained"
+            onPress={handleSubmit}
+            loading={isLoading}
+            disabled={isLoading}
+            style={styles.button}
+            labelStyle={{ color: theme.colors.onPrimary }}
+          >
+            Save
+          </Button>
+        </View>
       </View>
     </ScrollView>
   );
@@ -247,16 +255,17 @@ const styles = StyleSheet.create({
   },
   input: {
     marginTop: 10,
+    backgroundColor: "white",
   },
-  radioItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 5,
-    padding: 10,
-    borderRadius: 5,
+  radioSurface: {
+    marginVertical: 6,
+    borderRadius: 8,
+  },
+  radioDescription: {
+    fontSize: 12,
+    marginBottom: 4,
   },
   button: {
-    marginTop: 20,
-    paddingVertical: 10,
+    flex: 1,
   },
 });
