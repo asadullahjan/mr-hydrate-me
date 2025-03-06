@@ -2,7 +2,6 @@ import { Stack } from "expo-router";
 import React from "react";
 import { DefaultTheme, PaperProvider } from "react-native-paper";
 import { AuthProvider } from "@/components/Auth/AuthProvider";
-import { LocationProvider } from "@/components/Location/LocationProvider";
 
 /**
  * RootLayout is the top-level layout for the app, wrapping all routes in necessary providers
@@ -25,7 +24,6 @@ export default function RootLayout() {
   return (
     <PaperProvider theme={theme}>
       <AuthProvider>
-        <LocationProvider>
           <Stack
             screenOptions={{
               headerShown: false, // Hide headers for all screens
@@ -34,7 +32,6 @@ export default function RootLayout() {
               },
             }}
           />
-        </LocationProvider>
       </AuthProvider>
     </PaperProvider>
   );

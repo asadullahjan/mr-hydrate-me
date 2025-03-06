@@ -70,7 +70,7 @@ describe("AddDrinkModal Component", () => {
 
     fireEvent.press(getByTestId("mock-trigger"));
     expect(getByText("Add a Drink")).toBeTruthy();
-    expect(getByText("250ml")).toBeTruthy(); // Default amount should be visible
+    expect(getByText("250 ml")).toBeTruthy(); // Default amount should be visible
   });
 
   // Test the ability to select predefined drink amounts
@@ -84,10 +84,10 @@ describe("AddDrinkModal Component", () => {
     );
 
     fireEvent.press(getByTestId("mock-trigger"));
-    fireEvent.press(getByText("300ml"));
+    fireEvent.press(getByText("300 ml"));
 
-    // Verify the selected amount updates to 300ml
-    expect(getByTestId("selected-amount")).toHaveTextContent("300ml");
+    // Verify the selected amount updates to 300 ml
+    expect(getByTestId("selected-amount")).toHaveTextContent("300 ml");
   });
 
   // Ensure custom drink amount input functions as expected

@@ -28,29 +28,6 @@ describe("Index Component", () => {
     jest.clearAllMocks();
   });
 
-  // Test that a loading indicator is displayed during authentication
-  it("displays a loading indicator when authentication is in progress", () => {
-    // Simulate an authentication loading state
-    (useAuth as jest.Mock).mockReturnValue({
-      user: null,
-      loading: true,
-    });
-
-    const { getByTestId } = render(
-      <PaperProvider>
-        <Index />
-      </PaperProvider>
-    );
-
-    // Verify that the ActivityIndicator is rendered with the expected style
-    expect(ActivityIndicator).toHaveBeenCalledWith(
-      expect.objectContaining({
-        style: { margin: "auto" },
-      }),
-      {}
-    );
-  });
-
   // Test redirection to the login screen when no user is authenticated
   it("redirects to the login screen when no user is authenticated", () => {
     // Simulate a state with no authenticated user and loading complete

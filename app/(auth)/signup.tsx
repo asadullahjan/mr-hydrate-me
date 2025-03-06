@@ -83,6 +83,7 @@ const SignUpForm = () => {
           <>
             <TextInput
               label="Email"
+              testID="Email"
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
@@ -117,6 +118,7 @@ const SignUpForm = () => {
           <>
             <TextInput
               label="Password"
+              testID="Password"
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}

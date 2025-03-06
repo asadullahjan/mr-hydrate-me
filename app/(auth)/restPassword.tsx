@@ -19,6 +19,7 @@ interface FormData {
 const PasswordResetForm = () => {
   // State to store error or success messages
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   // State to indicate loading status during email sending
   const [isLoading, setIsLoading] = useState(false);
 
@@ -44,7 +45,7 @@ const PasswordResetForm = () => {
 
     try {
       await sendPasswordResetEmail(auth, data.email);
-      setError("Password reset email sent. Check your inbox.");
+      setSuccess("Password reset email sent. Check your inbox.");
     } catch (error: any) {
       setError(getErrorMessage(error.code));
     } finally {
@@ -69,6 +70,7 @@ const PasswordResetForm = () => {
           <>
             <TextInput
               label="Email"
+              testID="Email"
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
@@ -93,10 +95,18 @@ const PasswordResetForm = () => {
       {/* Display error or success message */}
       {error && (
         <HelperText
-          type={error.includes("sent") ? "info" : "error"}
+          type={"error"}
           visible={true}
         >
           {error}
+        </HelperText>
+      )}
+      {success && (
+        <HelperText
+          type={"info"}
+          visible={true}
+        >
+          {success}
         </HelperText>
       )}
 
