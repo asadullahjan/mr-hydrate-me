@@ -1,4 +1,4 @@
-import { useAuth } from "@/components/Auth/AuthProvider";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { auth } from "@/firebaseConfig";
 import { updateUserData } from "@/services/update-user-profile";
 import { router, useNavigation } from "expo-router";

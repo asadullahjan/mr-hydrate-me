@@ -1,7 +1,7 @@
 import { View, StyleSheet } from "react-native";
-import { Text, TextInput, Button, HelperText, useTheme } from "react-native-paper";
+import { Text, Button, HelperText, useTheme } from "react-native-paper";
 import { useState } from "react";
-import { useAuth } from "@/components/Auth/AuthProvider";
+import { useAuth } from "@/components/auth/AuthProvider";
 import {
   getAuth,
   EmailAuthProvider,
@@ -9,6 +9,8 @@ import {
   updatePassword,
 } from "firebase/auth";
 import getErrorMessage from "@/utils/getErrorMessage";
+import { router } from "expo-router";
+import TextInput from "@/components/ui/TextInput";
 
 /**
  * ChangePassword screen allows users to update their account password.
@@ -112,17 +114,28 @@ const ChangePassword = () => {
         </Text>
       )}
 
-      {/* Change Password Button */}
-      <Button
-        mode="contained"
-        onPress={handleChangePassword}
-        loading={isLoading}
-        disabled={!currentPassword || !newPassword || isLoading}
-        style={styles.button}
-        labelStyle={{ color: colors.onPrimary }}
-      >
-        Update Password
-      </Button>
+      <View style={styles.buttonContainer}>
+        <Button
+          mode="outlined"
+          onPress={() => router.navigate("/(tabs)/profile")}
+          disabled={isLoading}
+          style={styles.button}
+          labelStyle={{ color: colors.primary }}
+        >
+          Cancel
+        </Button>
+        {/* Change Password Button */}
+        <Button
+          mode="contained"
+          onPress={handleChangePassword}
+          loading={isLoading}
+          disabled={!currentPassword || !newPassword || isLoading}
+          style={styles.button}
+          labelStyle={{ color: colors.onPrimary }}
+        >
+          Update Password
+        </Button>
+      </View>
     </View>
   );
 };
@@ -141,15 +154,19 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: 15,
-    backgroundColor: "white",
   },
   button: {
     marginTop: 20,
-    paddingVertical: 10,
+    paddingVertical: 5,
   },
   successText: {
     marginTop: 10,
     textAlign: "center",
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 5,
   },
 });
 

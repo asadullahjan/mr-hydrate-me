@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import * as Notifications from "expo-notifications";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "@/firebaseConfig";
-import { useAuth } from "@/components/Auth/AuthProvider";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 // Define the shape of notification settings
 export interface NotificationSettings {

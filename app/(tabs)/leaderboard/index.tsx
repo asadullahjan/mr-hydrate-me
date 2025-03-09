@@ -1,4 +1,4 @@
-import { useAuth } from "@/components/Auth/AuthProvider";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { useLeaderboardStore } from "@/store/leaderboardStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import React, { useEffect } from "react";

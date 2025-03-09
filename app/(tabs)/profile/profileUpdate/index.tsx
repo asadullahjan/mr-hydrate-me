@@ -1,17 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { View, ScrollView, StyleSheet } from "react-native";
-import {
-  Text,
-  TextInput,
-  Button,
-  RadioButton,
-  HelperText,
-  useTheme,
-  Surface,
-} from "react-native-paper";
+import { Text, Button, RadioButton, HelperText, useTheme, Surface } from "react-native-paper";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { useAuth } from "@/components/Auth/AuthProvider";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { updateUserData } from "@/services/update-user-profile";
+import TextInput from "@/components/ui/TextInput";
 
 // Define ActivityLevel type
 type ActivityLevel = "sedentary" | "light" | "moderate" | "very" | "extreme";
@@ -196,10 +189,8 @@ const EditProfileScreen = () => {
                 value={formData[question.field]}
                 onChangeText={(value) => handleChange(question.field, value)}
                 keyboardType={question.type === "number" ? "numeric" : "default"}
-                style={styles.input}
+                customStyles={styles.input}
                 error={!!errors[question.field]}
-                outlineColor={colors.primary}
-                activeOutlineColor={colors.primary}
               />
               {errors[question.field] && (
                 <HelperText

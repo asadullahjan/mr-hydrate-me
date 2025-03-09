@@ -1,4 +1,4 @@
-import { useAuth } from "@/components/Auth/AuthProvider";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { useUserHistoryStore, DailyRecord } from "@/store/userHistoryStore";
 import moment from "moment";
 import React, { useState, useEffect, useMemo, useCallback } from "react";
@@ -6,8 +6,8 @@ import { View, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 import { Calendar } from "react-native-calendars";
 import WaterIntakeChart from "@/components/SummaryChart";
-import EntriesSection from "@/components/History/EntriesSection";
-import ProgressSection from "@/components/History/ProgressSection";
+import EntriesSection from "@/components/history/EntriesSection";
+import ProgressSection from "@/components/history/ProgressSection";
 import { DateData, MarkedDates } from "react-native-calendars/src/types";
 
 /**

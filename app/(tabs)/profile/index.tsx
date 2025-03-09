@@ -3,8 +3,8 @@ import { Button, Text, useTheme, Dialog, Portal } from "react-native-paper";
 import { FontAwesome, MaterialIcons, Ionicons, Feather } from "@expo/vector-icons";
 import { useState } from "react";
 import { router } from "expo-router";
-import { useAuth } from "@/components/Auth/AuthProvider";
-import DeleteAccount from "@/components/Profile/DeleteAccount";
+import { useAuth } from "@/components/auth/AuthProvider";
+import DeleteAccount from "@/components/profile/DeleteAccount";
 
 /**
  * Profile screen displays user information and provides options to edit profile,

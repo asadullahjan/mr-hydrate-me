@@ -1,20 +1,13 @@
 import React, { useState } from "react";
 import { StyleSheet, TouchableOpacity, Alert, StyleProp, ViewStyle, TextStyle } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import {
-  Button,
-  Text,
-  useTheme,
-  Dialog,
-  Portal,
-  TextInput,
-  ActivityIndicator,
-} from "react-native-paper";
-import { useAuth } from "@/components/Auth/AuthProvider";
+import { Button, Text, useTheme, Dialog, Portal, ActivityIndicator } from "react-native-paper";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { auth, db } from "@/firebaseConfig";
 import { EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
 import { doc, deleteDoc, collection, getDocs } from "firebase/firestore";
 import getErrorMessage from "@/utils/getErrorMessage";
+import TextInput from "../ui/TextInput";
 
 // Define props interface
 interface DeleteAccountProps {
@@ -114,6 +107,7 @@ const DeleteAccount: React.FC<DeleteAccountProps> = ({ actionButtonStyles, butto
             setDeletePassword("");
             setDeleteError("");
           }}
+          style={{ backgroundColor: colors.background }}
         >
           <Dialog.Title>Delete Account</Dialog.Title>
           <Dialog.Content>

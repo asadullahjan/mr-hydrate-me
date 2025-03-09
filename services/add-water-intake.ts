@@ -1,4 +1,4 @@
-import { User } from "@/components/Auth/AuthProvider";
+import { User } from "@/components/auth/AuthProvider";
 import { db } from "@/firebaseConfig";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { arrayUnion } from "firebase/firestore";

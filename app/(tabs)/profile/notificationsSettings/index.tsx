@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { View, ScrollView, StyleSheet } from "react-native";
-import { Text, TextInput, Button, Switch, HelperText, useTheme, Divider } from "react-native-paper";
+import { Text, Button, Switch, HelperText, useTheme, Divider } from "react-native-paper";
 import { useRouter } from "expo-router";
 import {
   NotificationSettings,
   useNotifications,
-} from "@/components/Notifications/NotificationsProvider";
+} from "@/components/notifications/NotificationsProvider";
 import { MaterialIcons } from "@expo/vector-icons";
+import TextInput from "@/components/ui/TextInput";
 
 // List of notification settings
 const notificationSettings = [
@@ -194,10 +195,7 @@ const NotificationsSettings = () => {
                     value={String(formData[setting.field] || "")}
                     onChangeText={(value) => handleChange(setting.field, value)}
                     keyboardType="numeric"
-                    style={styles.input}
                     error={!!errors[setting.field]}
-                    outlineColor={colors.primary}
-                    activeOutlineColor={colors.primary}
                     disabled={isDisabled}
                   />
                   {errors[setting.field] && (
@@ -220,7 +218,7 @@ const NotificationsSettings = () => {
       <View style={styles.buttonContainer}>
         <Button
           mode="outlined"
-          onPress={() => router.navigate('/(tabs)/profile')}
+          onPress={() => router.navigate("/(tabs)/profile")}
           disabled={isLoading}
           style={styles.button}
           labelStyle={{ color: colors.primary }}
@@ -284,10 +282,6 @@ const styles = StyleSheet.create({
   },
   disabledText: {
     color: "#9ca3af",
-  },
-  input: {
-    backgroundColor: "#fff",
-    marginTop: 8,
   },
   divider: {
     marginVertical: 12,

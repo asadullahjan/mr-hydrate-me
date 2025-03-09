@@ -2,7 +2,7 @@ import React from "react";
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
 import { Provider as PaperProvider, Text } from "react-native-paper";
 import { AddDrinkModal } from "@/components/AddDrinkModal";
-import { useAuth } from "@/components/Auth/AuthProvider";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { addWaterIntake } from "@/services/add-water-intake";
 import { TouchableOpacity } from "react-native";
 

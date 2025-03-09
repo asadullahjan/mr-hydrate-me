@@ -3,7 +3,7 @@ import * as Location from "expo-location";
 import { Alert } from "react-native";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "@/firebaseConfig";
-import { useAuth } from "../Auth/AuthProvider";
+import { useAuth } from "../auth/AuthProvider";
 
 // Define the LocationState interface
 interface LocationState {

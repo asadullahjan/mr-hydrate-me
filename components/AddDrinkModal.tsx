@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "react-native-paper";
 import { addWaterIntake } from "@/services/add-water-intake";
-import { useAuth } from "./Auth/AuthProvider";
+import { useAuth } from "./auth/AuthProvider";
 
 // Define props interfaces
 interface TriggerProps {

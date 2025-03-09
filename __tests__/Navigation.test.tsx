@@ -2,7 +2,7 @@ import React from "react";
 import { render } from "@testing-library/react-native";
 import { Redirect } from "expo-router";
 import { ActivityIndicator } from "react-native-paper";
-import { useAuth } from "@/components/Auth/AuthProvider";
+import { useAuth } from "@/components/auth/AuthProvider";
 import Index from "@/app/index";
 import { PaperProvider } from "react-native-paper";
 

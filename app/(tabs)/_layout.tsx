@@ -2,10 +2,10 @@ import { router, Tabs } from "expo-router";
 import { FontAwesome, Ionicons } from "@expo/vector-icons";
 import { ActivityIndicator, useTheme } from "react-native-paper";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
-import { useAuth } from "@/components/Auth/AuthProvider";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { AddDrinkModal } from "@/components/AddDrinkModal";
-import { LocationProvider } from "@/components/Location/LocationProvider";
-import { NotificationsProvider } from "@/components/Notifications/NotificationsProvider";
+import { LocationProvider } from "@/components/location/LocationProvider";
+import { NotificationsProvider } from "@/components/notifications/NotificationsProvider";
 
 // Define the structure of a tab route
 interface TabRoute {

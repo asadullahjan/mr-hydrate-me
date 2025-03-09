@@ -1,4 +1,4 @@
-import { useAuth } from "@/components/Auth/AuthProvider";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { FontAwesome } from "@expo/vector-icons";
 import { View, StyleSheet, ScrollView, Alert } from "react-native";
 import { ActivityIndicator, Button, Surface, Text, useTheme } from "react-native-paper";
@@ -12,7 +12,7 @@ import moment from "moment";
 import { getWeekMonthData } from "@/services/get-week-month-progress";
 import { DailyRecord } from "@/store/userHistoryStore";
 import { router } from "expo-router";
-import { useLocation } from "@/components/Location/LocationProvider";
+import { useLocation } from "@/components/location/LocationProvider";
 
 /**
  * Home screen displays a user's daily water intake progress, weekly summary,

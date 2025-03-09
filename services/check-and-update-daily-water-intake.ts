@@ -3,6 +3,7 @@ import { DailyRecord } from "@/store/userHistoryStore";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import moment from "moment";
 import * as Location from "expo-location";
+import Constants from "expo-constants";
 
 // Define weather data interface
 interface Weather {
@@ -76,7 +77,7 @@ async function fetchWeatherData({
   longitude: number;
 }): Promise<Weather> {
   try {
-    const apiKey = process.env.EXPO_PUBLIC_TOMORROW_IO_API_KEY;
+    const apiKey = Constants.expoConfig?.extra?.EXPO_PUBLIC_TOMORROW_IO_API_KEY;
     if (!apiKey) {
       throw new Error("Weather API key is missing");
     }

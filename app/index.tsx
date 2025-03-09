@@ -1,40 +1,95 @@
-import { useAuth } from "@/components/Auth/AuthProvider";
-import { Redirect } from "expo-router";
-import { ActivityIndicator } from "react-native-paper";
-import { StyleSheet } from "react-native";
+// import { auth } from "@/firebaseConfig";
+// import { Redirect, SplashScreen } from "expo-router";
+// import { onAuthStateChanged } from "firebase/auth";
+// import { useState, useEffect } from "react";
+import { ActivityIndicator, SafeAreaView, StyleSheet, View, Text } from "react-native";
 
-/**
- * Index component serves as the entry point for the app, redirecting users based on
- * their authentication and onboarding status.
- */
+// SplashScreen.preventAutoHideAsync().catch(console.warn);
+
 export default function Index() {
-  // Hooks for authentication state
-  const { user, loading: isAuthLoading } = useAuth();
+  // const [appIsReady, setAppIsReady] = useState(false);
+  // console.warn("root layout ran");
+  // useEffect(() => {
+  //   async function prepare() {
+  //     try {
+  //       // Wait for Firebase auth state to be determined
+  //       await new Promise((resolve) => {
+  //         const unsubscribe = onAuthStateChanged(auth, (user) => {
+  //           console.log("Auth state changed:", user ? "Logged in" : "Logged out");
+  //           unsubscribe(); // Clean up listener
+  //           resolve(user); // Resolve when auth state is determined
+  //         });
+  //       });
+  //       // Simulate additional loading (e.g., font loading, data fetch)
+  //       await new Promise((resolve) => setTimeout(resolve, 1000));
+  //     } catch (e) {
+  //       console.error("Initialization error:", e);
+  //     } finally {
+  //       setAppIsReady(true);
+  //     }
+  //   }
 
-  // Show loading indicator while auth state is being determined
-  if (isAuthLoading) {
-    return <ActivityIndicator style={styles.loading} />;
-  }
+  //   prepare();
+  // }, []);
 
-  // Redirect to login if user is not authenticated
-  if (!user) {
-    return <Redirect href="/(auth)/login" />;
-  }
+  // useEffect(() => {
+  //   if (appIsReady) {
+  //     SplashScreen.hideAsync().catch(console.error);
+  //   }
+  // }, [appIsReady]);
 
-  // Redirect to onboarding if not completed
-  if (!user.onBoardingCompleted) {
-    return <Redirect href="/(onboarding)/welcome" />;
-  }
+  // if (!appIsReady) {
+  //   return null; // Render nothing until initialization is complete
+  // }
 
-  // Redirect to home screen if authenticated and onboarding is complete
-  return <Redirect href="/(tabs)/home" />;
+  // useEffect(() => {
+  //   // Hide splash screen after component mounts
+  //   SplashScreen.hideAsync().catch(console.warn);
+  // }, []);
+
+  // const { user, loading: isAuthLoading } = useAuth();
+
+  // if (isAuthLoading) {
+  //   return (
+  //     <View style={styles.loadingContainer}>
+  //       <ActivityIndicator
+  //         size="large"
+  //         color="#27ADC2"
+  //       />
+  //       <Text style={styles.loadingText}>Loading your profile...</Text>
+  //     </View>
+  //   );
+  // }
+
+  // if (!user) {
+  //   return <Redirect href="/(auth)/login" />;
+  // }
+
+  // if (!user.onBoardingCompleted) {
+  //   return <Redirect href="/(onboarding)/welcome" />;
+  // }
+
+  // return <Redirect href="/(tabs)/home" />;
+  return (
+    <SafeAreaView
+      style={{ justifyContent: "center", alignItems: "center", flex: 1, backgroundColor: "black" }}
+    >
+      <Text>Hi this is me talking</Text>;
+      <Text>{process?.env?.EXPO_PUBLIC_FIREBASE_API_KEY || "Not found"}</Text>
+    </SafeAreaView>
+  );
 }
 
-// Styles for the Index component
 const styles = StyleSheet.create({
-  loading: {
+  loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "white",
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#333",
   },
 });
