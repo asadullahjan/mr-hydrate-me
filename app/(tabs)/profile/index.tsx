@@ -5,6 +5,7 @@ import { useState } from "react";
 import { router } from "expo-router";
 import { useAuth } from "@/components/auth/AuthProvider";
 import DeleteAccount from "@/components/profile/DeleteAccount";
+import { auth } from "@/firebaseConfig";
 
 /**
  * Profile screen displays user information and provides options to edit profile,
@@ -21,7 +22,8 @@ const Profile = () => {
   /**
    * Handles user logout by signing out from Firebase Auth.
    */
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await auth.signOut();
     setIsLogoutDialogVisible(false);
     router.replace("/(auth)/login"); // Redirect to login after logout
   };
@@ -33,7 +35,7 @@ const Profile = () => {
         {/* Edit Button */}
         <TouchableOpacity
           style={styles.editButton}
-          onPress={() => router.navigate("/(tabs)/profile/profileUpdate")}
+          onPress={() => router.push("/(tabs)/profile/profileUpdate")}
         >
           <Feather
             name="edit-2"
@@ -77,7 +79,7 @@ const Profile = () => {
           {/* Reset Password Button */}
           <TouchableOpacity
             style={[styles.actionButton, { backgroundColor: colors.background }]}
-            onPress={() => router.navigate("/(tabs)/profile/resetPassword")}
+            onPress={() => router.push("/(tabs)/profile/resetPassword")}
           >
             <MaterialIcons
               name="lock-reset"
@@ -90,11 +92,11 @@ const Profile = () => {
           {/* Notifications Button */}
           <TouchableOpacity
             style={[styles.actionButton, { backgroundColor: colors.background }]}
-            onPress={() => router.navigate("/(tabs)/profile/notificationsSettings")}
+            onPress={() => router.push("/(tabs)/profile/notificationsSettings")}
           >
             <Ionicons
-              name="notifications"
-              size={32}
+              name="notifications-outline"
+              size={29}
               color={colors.primary}
             />
             <Text style={styles.buttonText}>Notifications</Text>

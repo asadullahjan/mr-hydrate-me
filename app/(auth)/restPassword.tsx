@@ -54,7 +54,7 @@ const PasswordResetForm = () => {
   };
 
   return (
-    <View>
+    <View key={"reset-form"}>
       {/* Email Input */}
       <Controller
         control={control}
@@ -71,6 +71,7 @@ const PasswordResetForm = () => {
             <TextInput
               label="Email"
               testID="Email"
+              key={"reset-password"}
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}

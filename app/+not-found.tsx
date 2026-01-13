@@ -12,7 +12,7 @@ export default function NotFoundScreen() {
           href="/"
           style={styles.link}
         >
-          <Text variant="titleLarge">Go to home screen!</Text>
+          <Text variant="titleSmall">Go to home screen!</Text>
         </Link>
       </View>
     </>

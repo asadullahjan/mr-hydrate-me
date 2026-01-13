@@ -107,7 +107,6 @@ const DeleteAccount: React.FC<DeleteAccountProps> = ({ actionButtonStyles, butto
             setDeletePassword("");
             setDeleteError("");
           }}
-          style={{ backgroundColor: colors.background }}
         >
           <Dialog.Title>Delete Account</Dialog.Title>
           <Dialog.Content>

@@ -1,11 +1,12 @@
 import { router, Tabs } from "expo-router";
 import { FontAwesome, Ionicons } from "@expo/vector-icons";
 import { ActivityIndicator, useTheme } from "react-native-paper";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { Keyboard, Platform, SafeAreaView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { AddDrinkModal } from "@/components/AddDrinkModal";
 import { LocationProvider } from "@/components/location/LocationProvider";
 import { NotificationsProvider } from "@/components/notifications/NotificationsProvider";
+import { useEffect, useState } from "react";
 
 // Define the structure of a tab route
 interface TabRoute {
@@ -39,65 +40,95 @@ const TabsLayout = () => {
   // Hooks for theme and auth
   const { colors } = useTheme();
   const { user, loading: isAuthLoading } = useAuth();
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
 
   // Show loading indicator while auth state is being determined
   if (isAuthLoading) {
     return <ActivityIndicator style={styles.loading} />;
   }
 
+  useEffect(() => {
+    const keyboardWillShowListener = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      () => setKeyboardVisible(true)
+    );
+
+    const keyboardWillHideListener = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => setKeyboardVisible(false)
+    );
+
+    return () => {
+      keyboardWillShowListener.remove();
+      keyboardWillHideListener.remove();
+    };
+  }, []);
+
   return (
     <LocationProvider>
       <NotificationsProvider>
-        <View style={styles.container}>
-          {/* Main Tab Navigation */}
-          <Tabs
-            screenOptions={{
-              tabBarActiveTintColor: colors.primary,
-              tabBarInactiveTintColor: colors.secondary,
-              headerShown: false,
-              tabBarStyle: {
-                backgroundColor: colors.background,
-                borderTopLeftRadius: 20,
-                borderTopRightRadius: 20,
-                height: 80,
-              },
-              tabBarItemStyle: {
-                height: 50,
-                marginVertical: "auto",
-              },
-            }}
-          >
-            {MAIN_TAB_ROUTES.map((tab) => (
-              <Tabs.Screen
-                key={tab.name}
-                name={tab.name}
-                options={{
-                  title: tab.title,
-                  tabBarIcon: ({ color, size }) => (
-                    <FontAwesome
-                      name={tab.icon as any}
-                      size={size}
-                      color={color}
-                    />
-                  ),
-                  ...(tab.hidden && { href: null }), // Hide from tab bar if marked as hidden
-                  sceneStyle: { backgroundColor: "white" },
-                }}
-              />
-            ))}
-          </Tabs>
+        <SafeAreaView
+          style={{
+            flex: 1,
+          }}
+        >
+          <View style={styles.container}>
+            {/* Main Tab Navigation */}
+            <Tabs
+              screenOptions={{
+                tabBarActiveTintColor: colors.primary,
+                tabBarInactiveTintColor: colors.secondary,
+                headerShown: false,
+                tabBarStyle: {
+                  backgroundColor: colors.background,
+                  borderTopLeftRadius: 20,
+                  borderTopRightRadius: 20,
+                  height: 80,
+                  display: keyboardVisible ? "none" : "flex",
+                },
+                tabBarItemStyle: {
+                  height: 50,
+                  marginVertical: "auto",
+                },
+              }}
+            >
+              {MAIN_TAB_ROUTES.map((tab) => (
+                <Tabs.Screen
+                  key={tab.name}
+                  name={tab.name}
+                  options={{
+                    title: tab.title,
+                    tabBarIcon: ({ color, size }) => (
+                      <FontAwesome
+                        name={tab.icon as any}
+                        size={size}
+                        color={color}
+                      />
+                    ),
+                    ...(tab.hidden && { href: null }), // Hide from tab bar if marked as hidden
+                    sceneStyle: { backgroundColor: "white" },
+                  }}
+                />
+              ))}
+            </Tabs>
 
-          {/* Floating Action Button for Adding Drink */}
-          <AddDrinkModal>
-            <TouchableOpacity style={[styles.fab, { backgroundColor: colors.primary }]}>
-              <Ionicons
-                name="add"
-                size={24}
-                color={colors.onPrimary}
-              />
-            </TouchableOpacity>
-          </AddDrinkModal>
-        </View>
+            {/* Floating Action Button for Adding Drink */}
+            <AddDrinkModal>
+              <TouchableOpacity
+                style={[
+                  styles.fab,
+                  { backgroundColor: colors.primary, display: keyboardVisible ? "none" : "flex" },
+                ]}
+              >
+                <Ionicons
+                  name="add"
+                  size={24}
+                  color={colors.onPrimary}
+                />
+              </TouchableOpacity>
+            </AddDrinkModal>
+          </View>
+        </SafeAreaView>
       </NotificationsProvider>
     </LocationProvider>
   );

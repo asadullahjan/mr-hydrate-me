@@ -1,6 +1,6 @@
 import React from "react";
 import { Stack } from "expo-router";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, SafeAreaView } from "react-native";
 import { SvgXml } from "react-native-svg";
 import { Text, useTheme } from "react-native-paper";
 
@@ -17,30 +17,37 @@ export default function AuthLayout() {
 
   // Render the layout with a header containing the logo and title, followed by the navigation stack
   return (
-    <View style={styles.container}>
-      <View style={styles.headingContainer}>
-        {/* Display the application logo using an SVG */}
-        <SvgXml
-          xml={LOGO_SVG}
-          width={35}
-          height={35}
+    <SafeAreaView
+      style={{
+        flex: 1,
+      }}
+    >
+      <View style={styles.container}>
+        <View style={styles.headingContainer}>
+          {/* Display the application logo using an SVG */}
+          <SvgXml
+            xml={LOGO_SVG}
+            width={35}
+            height={35}
+          />
+          {/* Application title with dynamic theme coloring */}
+          <Text
+            variant="headlineLarge"
+            style={[styles.title, { color: theme.colors.primary }]}
+          >
+            Mr{"\n"}Hydrate Me
+          </Text>
+        </View>
+        {/* Navigation stack for authentication screens */}
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: "white" },
+            animation: "fade",
+          }}
         />
-        {/* Application title with dynamic theme coloring */}
-        <Text
-          variant="headlineLarge"
-          style={[styles.title, { color: theme.colors.primary }]}
-        >
-          Mr{"\n"}Hydrate Me
-        </Text>
       </View>
-      {/* Navigation stack for authentication screens */}
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: "white" },
-        }}
-      />
-    </View>
+    </SafeAreaView>
   );
 }
 

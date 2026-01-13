@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { View, ScrollView, StyleSheet } from "react-native";
+import { View, ScrollView, StyleSheet, Alert } from "react-native";
 import { Text, Button, RadioButton, HelperText, useTheme, Surface } from "react-native-paper";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { updateUserData } from "@/services/update-user-profile";
 import TextInput from "@/components/ui/TextInput";
+import HeaderWithBack from "@/components/ui/HeaderWithBack";
 
 // Define ActivityLevel type
 type ActivityLevel = "sedentary" | "light" | "moderate" | "very" | "extreme";
@@ -93,6 +94,7 @@ const EditProfileScreen = () => {
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Populate form with user data on mount
   useEffect(() => {
@@ -115,6 +117,7 @@ const EditProfileScreen = () => {
   const handleChange = (field: keyof FormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => ({ ...prev, [field]: "" }));
+    setHasUnsavedChanges(true);
   };
 
   /**
@@ -155,7 +158,7 @@ const EditProfileScreen = () => {
       if (!userIdToUse) throw new Error("No user ID available");
 
       await updateUserData(userIdToUse, userData);
-      router.back();
+      router.push("/(tabs)/profile");
     } catch (err) {
       console.error("Error updating user data:", err);
       setErrors((prev) => ({ ...prev, general: "Failed to update profile. Please try again." }));
@@ -167,12 +170,11 @@ const EditProfileScreen = () => {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       {/* Title */}
-      <Text
-        variant="headlineMedium"
-        style={[styles.title, { color: colors.primary }]}
-      >
-        Edit Your Profile
-      </Text>
+      <HeaderWithBack
+        title="Edit Your Profile"
+        backRoute={"/(tabs)/profile"}
+        hasUnsavedChanges={hasUnsavedChanges}
+      />
 
       {/* Profile Questions */}
       {questions.map((question) => (
@@ -228,33 +230,22 @@ const EditProfileScreen = () => {
         <HelperText
           type="error"
           visible={!!errors.general}
+          style={styles.error}
         >
           {errors.general}
         </HelperText>
       )}
 
-      {/* Action Buttons */}
-      <View style={styles.buttonContainer}>
-        <Button
-          mode="outlined"
-          onPress={() => router.navigate("/(tabs)/profile")}
-          disabled={isLoading}
-          style={styles.button}
-          labelStyle={{ color: colors.primary }}
-        >
-          Cancel
-        </Button>
-        <Button
-          mode="contained"
-          onPress={handleSubmit}
-          loading={isLoading}
-          disabled={isLoading}
-          style={styles.button}
-          labelStyle={{ color: colors.onPrimary }}
-        >
-          Save
-        </Button>
-      </View>
+      {/* Action Button */}
+      <Button
+        mode="contained"
+        onPress={handleSubmit}
+        loading={isLoading}
+        disabled={isLoading || !hasUnsavedChanges}
+        labelStyle={{ color: colors.onPrimary }}
+      >
+        Save
+      </Button>
     </ScrollView>
   );
 };
@@ -263,6 +254,7 @@ const EditProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     padding: 20,
+    paddingVertical: 30,
   },
   title: {
     fontWeight: "bold",
@@ -280,13 +272,8 @@ const styles = StyleSheet.create({
     marginVertical: 6,
     borderRadius: 8,
   },
-  buttonContainer: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 10,
-  },
-  button: {
-    flex: 1,
+  error: {
+    marginBottom: 10,
   },
 });
 

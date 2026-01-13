@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Modal, Portal, Text, Button, TextInput } from "react-native-paper";
 import { Pressable, StyleSheet, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -28,6 +28,7 @@ export const AddDrinkModal: React.FC<AddDrinkModalProps> = ({ children, onComple
   const [customValue, setCustomValue] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const customInputRef = useRef<any>(null);
 
   // Hooks for theme and auth
   const { colors } = useTheme();
@@ -64,6 +65,18 @@ export const AddDrinkModal: React.FC<AddDrinkModalProps> = ({ children, onComple
       setError(errorMessage);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Handle predefined option selection
+  const handleOptionSelect = (value: number) => {
+    setSelectedValue(value);
+    setCustomValue("");
+    setError(null);
+
+    // Clear the TextInput using the ref
+    if (customInputRef.current) {
+      customInputRef.current.clear();
     }
   };
 
@@ -105,14 +118,10 @@ export const AddDrinkModal: React.FC<AddDrinkModalProps> = ({ children, onComple
                   selectedValue === value &&
                     !customValue && [
                       styles.selectedOption,
-                      { borderColor: colors.primary, backgroundColor: colors.primaryContainer },
+                      { borderColor: colors.primary, backgroundColor: colors.background },
                     ],
                 ]}
-                onPress={() => {
-                  setSelectedValue(value);
-                  setCustomValue("");
-                  setError(null);
-                }}
+                onPress={() => handleOptionSelect(value)}
               >
                 <MaterialCommunityIcons
                   name={icon as any}
@@ -130,7 +139,6 @@ export const AddDrinkModal: React.FC<AddDrinkModalProps> = ({ children, onComple
           <TextInput
             testID="custom-amount-input"
             label="Custom Amount (ml)"
-            value={customValue}
             onChangeText={setCustomValue}
             keyboardType="numeric"
             mode="flat"
@@ -138,6 +146,7 @@ export const AddDrinkModal: React.FC<AddDrinkModalProps> = ({ children, onComple
             placeholder="Enter amount"
             error={!!error}
             disabled={isLoading}
+            ref={customInputRef}
           />
 
           {/* Error Message */}

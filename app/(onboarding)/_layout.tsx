@@ -1,5 +1,14 @@
 import { Stack } from "expo-router";
+import { SafeAreaView } from "react-native";
 
 export default function OnboardingLayout() {
-  return <Stack screenOptions={{ headerShown: false, gestureEnabled: false }} />;
+  return (
+    <SafeAreaView
+      style={{
+        flex: 1,
+      }}
+    >
+      <Stack screenOptions={{ headerShown: false, gestureEnabled: false }} />
+    </SafeAreaView>
+  );
 }

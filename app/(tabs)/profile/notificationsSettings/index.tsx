@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, ScrollView, StyleSheet } from "react-native";
+import { View, ScrollView, StyleSheet, Alert } from "react-native";
 import { Text, Button, Switch, HelperText, useTheme, Divider } from "react-native-paper";
 import { useRouter } from "expo-router";
 import {
@@ -8,6 +8,7 @@ import {
 } from "@/components/notifications/NotificationsProvider";
 import { MaterialIcons } from "@expo/vector-icons";
 import TextInput from "@/components/ui/TextInput";
+import HeaderWithBack from "@/components/ui/HeaderWithBack";
 
 // List of notification settings
 const notificationSettings = [
@@ -75,6 +76,7 @@ const NotificationsSettings = () => {
   const [formData, setFormData] = useState<NotificationSettings>(settings);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   /**
    * Updates form data based on user input.
@@ -89,6 +91,7 @@ const NotificationsSettings = () => {
         : value;
     setFormData((prev) => ({ ...prev, [field]: newValue }));
     setErrors((prev) => ({ ...prev, [field]: "" }));
+    setHasUnsavedChanges(true);
   };
 
   /**
@@ -120,7 +123,7 @@ const NotificationsSettings = () => {
     setIsLoading(true);
     try {
       await updateSettings(formData);
-      router.back();
+      router.push("/(tabs)/profile");
     } catch (err) {
       console.error("Error updating notification settings:", err);
       if (err instanceof Error && "field" in err && "message" in err) {
@@ -138,12 +141,11 @@ const NotificationsSettings = () => {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       {/* Title */}
-      <Text
-        variant="headlineMedium"
-        style={[styles.title, { color: colors.primary }]}
-      >
-        Notification Settings
-      </Text>
+      <HeaderWithBack
+        title="Notification Settings"
+        backRoute={"/(tabs)/profile"}
+        hasUnsavedChanges={hasUnsavedChanges}
+      />
 
       {/* Notification Settings List */}
       {notificationSettings.map((setting, index) => {
@@ -214,28 +216,17 @@ const NotificationsSettings = () => {
         );
       })}
 
-      {/* Action Buttons */}
-      <View style={styles.buttonContainer}>
-        <Button
-          mode="outlined"
-          onPress={() => router.navigate("/(tabs)/profile")}
-          disabled={isLoading}
-          style={styles.button}
-          labelStyle={{ color: colors.primary }}
-        >
-          Cancel
-        </Button>
-        <Button
-          mode="contained"
-          onPress={handleSubmit}
-          loading={isLoading}
-          disabled={isLoading}
-          style={styles.button}
-          labelStyle={{ color: colors.onPrimary }}
-        >
-          Save
-        </Button>
-      </View>
+      {/* Action Button */}
+      <Button
+        mode="contained"
+        onPress={handleSubmit}
+        loading={isLoading}
+        disabled={isLoading || !hasUnsavedChanges}
+        style={styles.button}
+        labelStyle={{ color: colors.onPrimary }}
+      >
+        Save
+      </Button>
     </ScrollView>
   );
 };
@@ -244,6 +235,7 @@ const NotificationsSettings = () => {
 const styles = StyleSheet.create({
   container: {
     padding: 20,
+    paddingVertical: 30,
   },
   title: {
     fontWeight: "bold",
@@ -290,13 +282,8 @@ const styles = StyleSheet.create({
   switch: {
     marginLeft: 8,
   },
-  buttonContainer: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 20,
-  },
   button: {
-    flex: 1,
+    marginTop: 20,
   },
 });
 

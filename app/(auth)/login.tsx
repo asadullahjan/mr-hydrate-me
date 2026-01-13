@@ -48,7 +48,7 @@ const SignInForm = () => {
 
     try {
       await signInWithEmailAndPassword(auth, data.email, data.password);
-      // Successful sign-in redirects handled by Firebase auth state listener elsewhere
+      router.replace("/");
     } catch (error: any) {
       setError(getErrorMessage(error.code));
     } finally {
@@ -57,7 +57,7 @@ const SignInForm = () => {
   };
 
   return (
-    <View>
+    <View key={"signin-form"}>
       {/* Email Input */}
       <Controller
         control={control}
@@ -73,6 +73,7 @@ const SignInForm = () => {
           <>
             <TextInput
               testID="Email"
+              key={"signin-email"}
               label="Email"
               value={value}
               onChangeText={onChange}
@@ -105,6 +106,7 @@ const SignInForm = () => {
             <TextInput
               testID="Password"
               label="Password"
+              key={"signin-password"}
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
@@ -148,6 +150,7 @@ const SignInForm = () => {
         loading={isLoading}
         disabled={isLoading}
         style={styles.button}
+        key={"signin"}
       >
         {isLoading ? "Signing in..." : "Sign In"}
       </Button>

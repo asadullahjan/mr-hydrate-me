@@ -213,28 +213,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await fetchUserData(firebaseUser);
   };
 
-  // Show loading or error UI
-  if (isLoading || !firebaseInitialized) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "white",
-        }}
-      >
-        <ActivityIndicator
-          size="large"
-          color="#27ADC2"
-        />
-        <Text style={{ marginTop: 16, fontSize: 16, color: "#333" }}>
-          {isLoading ? "Loading your profile..." : "Initializing Firebase..."}
-        </Text>
-      </View>
-    );
-  }
-
   if (error) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 20 }}>

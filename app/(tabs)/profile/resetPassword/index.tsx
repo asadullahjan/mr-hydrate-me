@@ -1,6 +1,7 @@
 import { View, StyleSheet } from "react-native";
 import { Text, Button, HelperText, useTheme } from "react-native-paper";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useForm, Controller } from "react-hook-form";
 import { useAuth } from "@/components/auth/AuthProvider";
 import {
   getAuth,
@@ -11,6 +12,8 @@ import {
 import getErrorMessage from "@/utils/getErrorMessage";
 import { router } from "expo-router";
 import TextInput from "@/components/ui/TextInput";
+import HeaderWithBack from "@/components/ui/HeaderWithBack";
+import { auth } from "@/firebaseConfig";
 
 /**
  * ChangePassword screen allows users to update their account password.
@@ -19,123 +22,157 @@ const ChangePassword = () => {
   // Hooks for auth and theme
   const { user } = useAuth();
   const { colors } = useTheme();
-  const auth = getAuth();
 
-  // State for form inputs, feedback, and loading
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [error, setError] = useState("");
+  // Form state with react-hook-form
+  const {
+    control,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+    },
+    mode: "onChange", // Validate on every change
+  });
+
   const [success, setSuccess] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   /**
    * Handles password change by re-authenticating and updating the password.
+   * @param data Form data containing currentPassword and newPassword
    */
-  const handleChangePassword = async () => {
-    setError("");
+  const handleChangePassword = async (data: { currentPassword: string; newPassword: string }) => {
     setSuccess("");
-    setIsLoading(true);
-
     try {
       const currentUser = auth.currentUser;
       if (!currentUser || !currentUser.email) {
-        throw new Error("No authenticated user found.");
+        setError("No authenticated user found.");
+        return;
       }
 
       // Re-authenticate with current password
-      const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
+      const credential = EmailAuthProvider.credential(currentUser.email, data.currentPassword);
       await reauthenticateWithCredential(currentUser, credential);
 
       // Update to new password
-      await updatePassword(currentUser, newPassword);
+      await updatePassword(currentUser, data.newPassword);
       setSuccess("Password updated successfully!");
-      setCurrentPassword("");
-      setNewPassword("");
+      router.navigate("/(tabs)/profile");
     } catch (err: any) {
+      console.error(err);
       setError(getErrorMessage(err.code || err.message));
-    } finally {
-      setIsLoading(false);
     }
   };
 
   return (
     <View style={styles.container}>
       {/* Title */}
-      <Text
-        variant="headlineMedium"
-        style={[styles.title, { color: colors.primary }]}
-      >
-        Change Password
-      </Text>
+      <HeaderWithBack
+        title="Change Password"
+        backRoute="/(tabs)/profile"
+      />
 
       {/* Current Password Field */}
-      <TextInput
-        label="Current Password"
-        value={currentPassword}
-        onChangeText={setCurrentPassword}
-        mode="outlined"
-        secureTextEntry
-        style={styles.input}
-        error={!!error}
-        outlineColor={colors.primary}
-        activeOutlineColor={colors.primary}
-      />
-
+      <View style={styles.input}>
+        <Controller
+          control={control}
+          name="currentPassword"
+          rules={{
+            required: "Current password is required",
+          }}
+          render={({ field: { onChange, onBlur, value } }) => (
+            <>
+              <TextInput
+                label="Current Password"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                mode="outlined"
+                secureTextEntry
+                error={!!errors.currentPassword}
+                outlineColor={colors.primary}
+                activeOutlineColor={colors.primary}
+                autoCapitalize="none"
+              />
+              {errors.currentPassword && (
+                <HelperText
+                  type="error"
+                  visible={!!errors.currentPassword}
+                >
+                  {errors.currentPassword.message}
+                </HelperText>
+              )}
+            </>
+          )}
+        />
+      </View>
       {/* New Password Field */}
-      <TextInput
-        label="New Password"
-        value={newPassword}
-        onChangeText={setNewPassword}
-        mode="outlined"
-        secureTextEntry
-        style={styles.input}
-        error={!!error}
-        outlineColor={colors.primary}
-        activeOutlineColor={colors.primary}
-      />
+      <View style={styles.input}>
+        <Controller
+          control={control}
+          name="newPassword"
+          rules={{
+            required: "New password is required",
+            minLength: {
+              value: 6,
+              message: "Password must be at least 6 characters",
+            },
+          }}
+          render={({ field: { onChange, onBlur, value } }) => (
+            <>
+              <TextInput
+                label="New Password"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                mode="outlined"
+                secureTextEntry
+                error={!!errors.newPassword}
+                outlineColor={colors.primary}
+                activeOutlineColor={colors.primary}
+                autoCapitalize="none"
+              />
+              {errors.newPassword && (
+                <HelperText
+                  type="error"
+                  visible={!!errors.newPassword}
+                >
+                  {errors.newPassword.message}
+                </HelperText>
+              )}
+            </>
+          )}
+        />
+      </View>
 
-      {/* Error Message */}
-      {error && (
+      {/* General Error or Success Message */}
+      {error && ( // Handle Firebase errors not tied to specific fields
         <HelperText
           type="error"
-          visible={!!error}
+          style={[styles.message]}
         >
           {error}
         </HelperText>
       )}
-
-      {/* Success Message */}
       {success && (
         <Text
           variant="bodyMedium"
-          style={[styles.successText]}
+          style={[styles.message]}
         >
           {success}
         </Text>
       )}
 
-      <View style={styles.buttonContainer}>
-        <Button
-          mode="outlined"
-          onPress={() => router.navigate("/(tabs)/profile")}
-          disabled={isLoading}
-          style={styles.button}
-          labelStyle={{ color: colors.primary }}
-        >
-          Cancel
-        </Button>
-        {/* Change Password Button */}
-        <Button
-          mode="contained"
-          onPress={handleChangePassword}
-          loading={isLoading}
-          disabled={!currentPassword || !newPassword || isLoading}
-          style={styles.button}
-          labelStyle={{ color: colors.onPrimary }}
-        >
-          Update Password
-        </Button>
-      </View>
+      <Button
+        mode="contained"
+        onPress={handleSubmit(handleChangePassword)}
+        loading={isSubmitting}
+        labelStyle={{ color: colors.onPrimary }}
+      >
+        Update Password
+      </Button>
     </View>
   );
 };
@@ -155,18 +192,8 @@ const styles = StyleSheet.create({
   input: {
     marginBottom: 15,
   },
-  button: {
-    marginTop: 20,
-    paddingVertical: 5,
-  },
-  successText: {
-    marginTop: 10,
-    textAlign: "center",
-  },
-  buttonContainer: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 5,
+  message: {
+    marginBottom: 5,
   },
 });
 

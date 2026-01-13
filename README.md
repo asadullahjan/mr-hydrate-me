@@ -1,50 +1,78 @@
-# Welcome to your Expo app 👋
+# Hydration Tracking App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+## Overview
 
-## Get started
+This application is designed to track and manage daily water intake, providing personalized hydration goals based on individual factors such as age, weight, and current weather conditions. The app helps users maintain optimal hydration levels by offering customized recommendations and an intuitive tracking interface.
 
-1. Install dependencies
+## Purpose
 
-   ```bash
-   npm install
-   ```
+Proper hydration is essential for health, yet many people struggle to consume appropriate amounts of water. This app addresses this challenge by:
 
-2. Start the app
+- Tracking daily water consumption
+- Providing personalized hydration goals
+- Adjusting recommendations based on weather conditions
+- Offering reminders to maintain consistent hydration
 
-   ```bash
-    npx expo start
-   ```
+## Key Features
 
-In the output, you'll find options to open the app in a
+- **Personalized Hydration Goals**: Customized water intake recommendations based on user's age, weight, and other personal factors
+- **Weather-Adaptive Recommendations**: Dynamic adjustments to hydration targets based on temperature and humidity
+- **User-Friendly Interface**: Simple dashboard with quick-add buttons for common water volumes (250ml, 500ml, 1L)
+- **Custom Entry Option**: Ability to log specific water intake amounts
+- **Customizable Notifications**: Reminders to drink water at user-defined intervals
+- **History Tracking**: View past hydration data and maintain streaks for consistent intake
+- **Social Features**: Leaderboards and achievements to encourage engagement
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Code Structure
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+The application follows a modular folder structure:
 
-## Get a fresh project
+```
+app/
+├── (auth)/                            # Authentication-related screens
+│ ├── _layout.tsx
+│ ├── signin.tsx
+│ ├── signup.tsx
+│ └── reset.tsx
+|
+├── (tabs)/                            # Main app tabs
+| ├── _layout.tsx
+│ ├── home.tsx                          # Water tracking dashboard
+│ ├── history.tsx                       # Past hydration records
+│ ├── leaderboard.tsx                   # Social comparison features
+│ └── profile/                         # User profile management
+│  ├── notificationSettings.tsx
+│  ├── updateProfile.tsx
+│  └── resetPassword.tsx
+|
+├── _layout.tsx                         # Main app layout
+|
+└── (onboarding)/                      # First-time user flow
+  ├── _layout.tsx
+  └── welcome.tsx
 
-When you're ready, run:
-
-```bash
-npm run reset-project
+components/                            # UI components and providers
+services/                              # API actions and external services
+store/                                 # Zustand state management stores
+util/                                  # Utility functions (including Firebase error handling based on code)
+__tests__/                             # Testing files
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Installation Instructions
 
-## Learn more
+1. Download the APK from the Expo link provided
+2. Install the application on your Android device
+3. No additional configuration is required - the app works immediately after installation
 
-To learn more about developing your project with Expo, look at the following resources:
+## Testing Instructions
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+1. Go to MrHydrateMe directory
+2. Run `npm test`
 
-## Join the community
+## Competitive Advantages
 
-Join our community of developers creating universal apps.
+This hydration tracking app stands out from similar applications like HydrateMe and Water Reminder through:
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- More sophisticated personalization of water intake calculations
+- Real-time weather-based hydration adjustments
+- Engaging social and gamification elements to improve user motivation

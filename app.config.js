@@ -1,7 +1,7 @@
 export default {
   expo: {
     name: "MrHydrateMe",
-    slug: "MrHydrateMe",
+    slug: "TestMrHydrateMe",
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/images/droplet-favicon.png",
@@ -16,7 +16,7 @@ export default {
         foregroundImage: "./assets/images/droplet-favicon.png",
         backgroundColor: "#ffffff",
       },
-      package: "com.asadullahjan.MrHydrateMe",
+      package: "com.asadullahjan.TestMrHydrateMe",
     },
     web: {
       bundler: "metro",
@@ -43,14 +43,15 @@ export default {
         origin: false,
       },
       eas: {
-        projectId: "3b596c1f-bb7a-4265-9078-ba3e84858191",
+        projectId: "bfb76f6c-f39a-4180-a2ba-b6402869429f",
       },
-      apiKey: process.env.API_KEY,
-      authDomain: process.env.AUTH_DOMAIN,
-      projectId: process.env.PROJECT_ID,
-      storageBucket: process.env.STORAGE_BUCKET,
-      messagingSenderId: process.env.MESSAGING_SENDER_ID,
-      appId: process.env.APP_ID,
+      apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+      authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+      projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+      storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+      messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+      appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
     },
+    owner: "asadullahjan",
   },
 };

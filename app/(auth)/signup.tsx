@@ -58,7 +58,7 @@ const SignUpForm = () => {
         },
         { merge: true }
       );
-      // Successful sign-up redirects handled by Firebase auth state listener elsewhere
+      router.replace("/");
     } catch (error: any) {
       setError(getErrorMessage(error.code));
     } finally {
@@ -67,7 +67,7 @@ const SignUpForm = () => {
   };
 
   return (
-    <View>
+    <View key={"signup-form"}>
       {/* Email Input */}
       <Controller
         control={control}
@@ -84,6 +84,7 @@ const SignUpForm = () => {
             <TextInput
               label="Email"
               testID="Email"
+              key={"signup-email"}
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
@@ -119,6 +120,7 @@ const SignUpForm = () => {
             <TextInput
               label="Password"
               testID="Password"
+              key={"signup-password"}
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
@@ -162,6 +164,7 @@ const SignUpForm = () => {
         loading={isLoading}
         disabled={isLoading}
         style={styles.button}
+        key={"signup"}
       >
         {isLoading ? "Creating Account..." : "Create Account"}
       </Button>
@@ -185,7 +188,6 @@ const SignUpForm = () => {
 // Styles for the component
 const styles = StyleSheet.create({
   input: {
-    marginBottom: 8,
     backgroundColor: "white",
   },
   button: {
